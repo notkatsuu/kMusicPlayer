@@ -17,7 +17,7 @@ typedef struct Point {
   int y;
 } Point;
 
-typedef struct Node {
+typedef struct NodeA {
   int x, y;
   int gScore, fScore, hScore;
   struct NodeA *parent;
