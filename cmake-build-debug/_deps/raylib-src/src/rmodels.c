@@ -4780,7 +4780,7 @@ static Model LoadGLTF(const char *fileName)
               > Texcoords: vec2: float
               > Colors: vec4: u8, u16, f32 (normalized)
               > Indices: u16, u32 (truncated to u16)
-          - NodeA hierarchies or transforms not supported
+          - Node hierarchies or transforms not supported
 
     ***********************************************************************************************/
 

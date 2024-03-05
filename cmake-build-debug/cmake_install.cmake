@@ -1,4 +1,4 @@
-# Install script for directory: C:/repos/Delivery04
+# Install script for directory: C:/repos/Delivery04_Katsu
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -39,7 +39,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("C:/repos/Delivery04/cmake-build-debug/_deps/raylib-build/cmake_install.cmake")
+  include("C:/repos/Delivery04_Katsu/cmake-build-debug/_deps/raylib-build/cmake_install.cmake")
 
 endif()
 
@@ -51,5 +51,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "C:/repos/Delivery04/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "C:/repos/Delivery04_Katsu/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

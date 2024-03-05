@@ -1,9 +1,43 @@
-"C:\Program Files\JetBrains\CLion 2023.3.4\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2023.3.4/bin/ninja/win/x64/ninja.exe" -G Ninja -S C:\repos\Delivery04 -B C:\repos\Delivery04\cmake-build-debug
+"C:\Program Files\JetBrains\CLion 2023.3.4\bin\cmake\win\x64\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug "-DCMAKE_MAKE_PROGRAM=C:/Program Files/JetBrains/CLion 2023.3.4/bin/ninja/win/x64/ninja.exe" -G Ninja -S C:\repos\Delivery04_Katsu -B C:\repos\Delivery04_Katsu\cmake-build-debug
+-- The C compiler identification is GNU 13.2.0
+-- The CXX compiler identification is GNU 13.2.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: C:/msys64/mingw64/bin/cc.exe - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: C:/msys64/mingw64/bin/c++.exe - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
 -- Populating raylib
 -- Configuring done (0.1s)
 -- Generating done (0.0s)
--- Build files have been written to: C:/repos/Delivery04/cmake-build-debug/_deps/raylib-subbuild
-ninja: no work to do.
+-- Build files have been written to: C:/repos/Delivery04_Katsu/cmake-build-debug/_deps/raylib-subbuild
+[1/9] Creating directories for 'raylib-populate'
+[1/9] Performing download step (download, verify and extract) for 'raylib-populate'
+-- Downloading...
+   dst='C:/repos/Delivery04_Katsu/cmake-build-debug/_deps/raylib-subbuild/raylib-populate-prefix/src/4.5.0.tar.gz'
+   timeout='none'
+   inactivity timeout='none'
+-- Using src='https://github.com/raysan5/raylib/archive/refs/tags/4.5.0.tar.gz'
+-- Downloading... done
+-- extracting...
+     src='C:/repos/Delivery04_Katsu/cmake-build-debug/_deps/raylib-subbuild/raylib-populate-prefix/src/4.5.0.tar.gz'
+     dst='C:/repos/Delivery04_Katsu/cmake-build-debug/_deps/raylib-src'
+-- extracting... [tar xfz]
+-- extracting... [analysis]
+-- extracting... [rename]
+-- extracting... [clean up]
+-- extracting... done
+[2/9] No update step for 'raylib-populate'
+[3/9] No patch step for 'raylib-populate'
+[5/9] No configure step for 'raylib-populate'
+[6/9] No build step for 'raylib-populate'
+[7/9] No install step for 'raylib-populate'
+[8/9] No test step for 'raylib-populate'
+[9/9] Completed 'raylib-populate'
 CMake Deprecation Warning at cmake-build-debug/_deps/raylib-src/CMakeLists.txt:1 (cmake_minimum_required):
   Compatibility with CMake < 3.5 will be removed from a future version of
   CMake.
@@ -12,17 +46,26 @@ CMake Deprecation Warning at cmake-build-debug/_deps/raylib-src/CMakeLists.txt:1
   CMake that the project does not need compatibility with older versions.
 
 
+-- Performing Test COMPILER_HAS_THOSE_TOGGLES
+-- Performing Test COMPILER_HAS_THOSE_TOGGLES - Success
 -- Testing if -Werror=pointer-arith can be used -- compiles
 -- Testing if -Werror=implicit-function-declaration can be used -- compiles
 -- Testing if -fno-strict-aliasing can be used -- compiles
 -- Using raylib's GLFW
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
 -- Including Win32 support
+-- Looking for dinput.h
+-- Looking for dinput.h - found
+-- Looking for xinput.h
+-- Looking for xinput.h - found
 -- Audio Backend: miniaudio
 -- Building raylib static library
 -- Generated build type: Debug
 -- Compiling with the flags:
 --   PLATFORM=PLATFORM_DESKTOP
 --   GRAPHICS=GRAPHICS_API_OPENGL_33
--- Configuring done (0.4s)
+-- Configuring done (22.9s)
 -- Generating done (0.0s)
--- Build files have been written to: C:/repos/Delivery04/cmake-build-debug
+-- Build files have been written to: C:/repos/Delivery04_Katsu/cmake-build-debug
