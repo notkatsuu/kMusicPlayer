@@ -1,2 +1,9 @@
-#ignore all cmake-build-debug files
-/cmake-build-debug/*
+#.gitignore that ignores directories .idea and cmake-build-debug
+
+# .gitignore
+
+.idea/
+
+cmake-build-debug/
+
+
