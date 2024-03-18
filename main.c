@@ -1,610 +1,250 @@
-#include <Raylib.h>
+#include <math.h>
+#include <raylib.h>
+#include <stdlib.h>
+#include <synchapi.h>
+#include <pthread.h>
 
-#define RAYGUI_IMPLEMENTATION
+#define A0 27.50f
+#define Bb0 29.14f
+#define B0 30.87f
+#define C1 32.70f
+#define Db1 34.65f
+#define D1 36.71f
+#define Eb1 38.89f
+#define E1 41.20f
+#define F1 43.65f
+#define Gb1 46.25f
+#define G1 49.00f
+#define Ab1 51.91f
+#define A1 55.00f
+#define Bb1 58.27f
+#define B1 61.74f
+#define C2 65.41f
+#define Db2 69.30f
+#define D2 73.42f
+#define Eb2 77.78f
+#define E2 82.41f
+#define F2 87.31f
+#define Gb2 92.50f
+#define G2 98.00f
+#define Ab2 103.83f
+#define A2 110.00f
+#define Bb2 116.54f
+#define B2 123.47f
+#define C3 130.81f
+#define Db3 138.59f
+#define D3 146.83f
+#define Eb3 155.56f
+#define E3 164.81f
+#define F3 174.61f
+#define Gb3 185.00f
+#define G3 196.00f
+#define Ab3 207.65f
+#define A3 220.00f
+#define Bb3 233.08f
+#define B3 246.94f
+#define C4 261.63f
+#define Db4 277.18f
+#define D4 293.66f
+#define Eb4 311.13f
+#define E4 329.63f
+#define F4 349.23f
+#define Gb4 369.99f
+#define G4 392.00f
+#define Ab4 415.30f
+#define A4 440.00f
+#define Bb4 466.16f
+#define B4 493.88f
+#define C5 523.25f
+#define Db5 554.37f
+#define D5 587.33f
+#define Eb5 622.25f
+#define E5 659.25f
+#define F5 698.46f
+#define Gb5 739.99f
+#define G5 783.99f
+#define Ab5 830.61f
+#define A5 880.00f
+#define Bb5 932.33f
+#define B5 987.77f
+#define C6 1046.50f
+#define Db6 1108.73f
+#define D6 1174.66f
+#define Eb6 1244.51f
+#define E6 1318.51f
+#define F6 1396.91f
+#define Gb6 1479.98f
+#define G6 1567.98f
+#define Ab6 1661.22f
+#define A6 1760.00f
+#define Bb6 1864.66f
+#define B6 1975.53f
+#define C7 2093.00f
+#define Db7 2217.46f
+#define D7 2349.32f
+#define Eb7 2489.02f
+#define E7 2637.02f
+#define F7 2793.83f
+#define Gb7 2959.96f
+#define G7 3135.96f
+#define Ab7 3322.44f
+#define A7 3520.00f
+#define Bb7 3729.31f
+#define B7 3951.07f
+#define C8 4186.01f
 
-#include "include/raygui.h"
-#include "raymath.h"
-#include "rlgl.h"
+#define TWO_PI (2.0f * PI)
 
-#define MAZE_WIDTH 64
-#define MAZE_HEIGHT 64
-#define MAZE_DRAW_SCALE 9
-#define SCREEN_WIDTH 1600
-#define SCREEN_HEIGHT 900
+typedef struct {
+  float* buffer;
+  int length;
+  float frequency;
+  int sampleRate;
+  float volume;
+} SoundProperties;
 
-typedef struct Point {
-  int x;
-  int y;
-} Point;
 
-typedef struct NodeA {
-  int x, y;
-  int gScore, fScore, hScore;
-  struct NodeA *parent;
-} NodeA;
+void freeSound(SoundProperties sound) {
+  free(sound.buffer);
+}
 
-bool cameraIsFps = false;
-bool cursorDisabled = false;
-Point direction[4] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+SoundProperties createSound(int sampleRate, float wavePeriod, float frequency, float volume) {
+  SoundProperties sound;
+  sound.sampleRate = sampleRate;
+  sound.frequency = frequency;
+  sound.length = sampleRate / wavePeriod;
+  sound.buffer = (float *)malloc(sound.length * sizeof(float));
+  sound.volume = volume;
+  return sound;
+}
 
-BoundingBox playerBoundingBox = {0};
-Point exitPoints[2] = {{(MAZE_WIDTH - 1) / 2, 0},
-                       {(MAZE_WIDTH - 1) / 2, MAZE_HEIGHT - 1}};
 
-void InitializeGame();
-Image GenerateMaze(Point *mazePoints);
-Camera InitOrbitCamera();
-Camera InitFirstPersonCamera();
-Model CreateModel(Mesh mesh);
-void ApplyTextureToModel(const Model *model, Texture2D texture);
-void DrawModelInGame(Model model, Vector3 position, float scale, Color color);
-void Draw3D(const Image *imMaze, Model planeModel, Model cubeModel);
-void Draw3DIntoTextureOrbital(RenderTexture2D target, const Image *imMaze,
-                              Vector2 mazeOffset3D, Camera cam,
-                              Model planeModel, Model cubeModel);
-void Draw3DFirstPerson(const Image *imMaze, const Camera cam,
-                       const Model planeModel, const Model cubeModel);
-void EditMaze(Image *imMaze, Image *copy, Texture2D *texMaze, int mazeX,
-              int mazeY);
-Texture2D GenerateSquareTexture(int size, Color squareColor,
-                                Color backgroundColor);
-void CameraMovementFPS(Camera *firstPersonCamera, const Image *imMaze);
-void ExportMaze(const Image *imMaze);
-void DrawUI(Image *imMaze, Camera *firstPersonCamera, Camera *orbitalCam,
-            bool *cameraIsFps);
-void CursorToggle();
-NodeA AStarPath(Image imMaze, Point start, Point goal);
-void DrawPathOnImage(NodeA *path, Image *imMaze);
 
-int main(void) {
-  InitializeGame();
+void generateDrumSound(float* buffer, int length, float decayFactor, float frequency, int sampleRate) {
+  float increment = frequency * TWO_PI / sampleRate;
+  float waveValue = 0.0f;
+  for (int i = 0; i < length; i++){
+    // Generate a low-frequency sine wave with harmonics
+    float sineWave = 0.0f;
+    for (int harmonic = 1; harmonic <= 3; harmonic++) {
+      sineWave += sinf(waveValue * harmonic) / harmonic;
+    }
+    waveValue += increment;
 
-  bool prevCamIsFps = !cameraIsFps;
-  bool dragWindow = false;
-  bool exitWindow = false;
-  Vector2 mousePosition = {0};
-  Vector2 panOffset = mousePosition;
-  Vector2 windowPosition = {500, 200};
-  SetWindowPosition(windowPosition.x, windowPosition.y);
-  //--------------------------------------------------------------------------------------
+    // Apply exponential decay
+    float decay = expf(-decayFactor * i / length);
 
-  double centerX = SCREEN_WIDTH / 2;
-  double centerY = SCREEN_HEIGHT / 2;
+    buffer[i] = sineWave * decay;
+  }
+}
 
-  Point mazePoints[MAZE_WIDTH * MAZE_HEIGHT] = {0};
-  static Image imMaze;
-  static Image copy;
+void generatePianoSound(float* buffer, int length, float frequency, int sampleRate) {
+  // Parameters for the piano sound
+  int numOvertones = 6;  // Number of overtones
+  float decayFactor = 0.0004f * 2.0f * PI * frequency;  // Decay factor for the exponential decay
 
-  imMaze = GenerateMaze(mazePoints);
-  copy = ImageCopy(imMaze);
-
-  NodeA path = {0};
-
-  // int *LoadRandomSequence(0,0,mazePoints.size);
-
-  Camera orbitalCam = InitOrbitCamera();
-  Camera firstPersonCamera = InitFirstPersonCamera();
-
-  Texture2D texMaze = LoadTextureFromImage(imMaze);
-  RenderTexture2D targetTexture = LoadRenderTexture(
-      MAZE_WIDTH * MAZE_DRAW_SCALE, MAZE_HEIGHT * MAZE_DRAW_SCALE);
-
-  Texture2D whiteCubeTexture = GenerateSquareTexture(64, WHITE, GRAY);
-  Texture2D blackFloorRoofTexture = GenerateSquareTexture(64, BLACK, DARKGRAY);
-
-  Mesh cubeMesh = GenMeshCube(1.0f, 1.0f, 1.0f);
-  Model cubeModel = CreateModel(cubeMesh);
-
-  Mesh planeMesh = GenMeshPlane(1.0f, 1.0f, 1, 1);
-  Model planeModel = CreateModel(planeMesh);
-
-  // Apply the texture to the model
-  ApplyTextureToModel(&cubeModel, whiteCubeTexture);
-  ApplyTextureToModel(&planeModel, blackFloorRoofTexture);
-
-  // Main game loop
-  while (!exitWindow && !WindowShouldClose()) {
-
-    mousePosition = GetMousePosition();
-    if (IsKeyPressed(KEY_SPACE))
-      cameraIsFps = !cameraIsFps;
-
-    if (cameraIsFps) {
-      CameraMovementFPS(&firstPersonCamera, &imMaze);
-    } else {
-      UpdateCamera(&orbitalCam, CAMERA_ORBITAL);
+  // Generate the fundamental frequency and overtones
+  for (int i = 0; i < length; i++) {
+    float time = (float)i / sampleRate;
+    float value = 0.0f;
+    for (int overtone = 1; overtone <= numOvertones; overtone++) {
+      float overtoneFrequency = frequency * overtone;
+      float increment = overtoneFrequency * TWO_PI;
+      value += sinf(increment * time) * expf(-decayFactor * time * overtone) / powf(2, overtone - 1);
     }
 
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) {
-      if (CheckCollisionPointRec(mousePosition,
-                                 (Rectangle){0, 0, SCREEN_WIDTH, 20})) {
-        dragWindow = true;
-        panOffset = mousePosition;
-      }
+    // Add saturation
+    value += value * value * value;
+
+    // Apply an envelope to make the sound more realistic
+    value *= 1 + 16 * time * expf(-6 * time);
+
+    buffer[i] = value;
+  }
+}
+
+
+void *playNote(void *arg) {
+  // Extract the note and duration from the argument
+  float *args = (float *)arg;
+  float note = args[0];
+  float duration = args[1];
+
+  // Check if the note is a rest
+  if (note == 0.0f) {
+    // If it's a rest, just wait for the duration of the rest
+    Sleep(duration * 1000);  // Sleep function expects milliseconds
+  } else {
+    // If it's not a rest, play the note as usual
+    SoundProperties noteSoundProps = createSound(48000, duration, note, 0.04f);
+    generatePianoSound(noteSoundProps.buffer, noteSoundProps.length,
+                       noteSoundProps.frequency, noteSoundProps.sampleRate);
+    Wave noteWave = {
+        .frameCount = noteSoundProps.length,
+        .sampleRate = noteSoundProps.sampleRate,
+        .sampleSize = 32,
+        .channels = 1,
+        .data = noteSoundProps.buffer
+    };
+    Sound noteSound = LoadSoundFromWave(noteWave);
+    SetSoundVolume(noteSound, noteSoundProps.volume);
+    PlaySound(noteSound);
+  }
+
+  return NULL;
+}
+
+
+void main(){
+  const int screenWidth = 800;
+  const int screenHeight = 450;
+  InitWindow(screenWidth, screenHeight, "Sound Generation");
+
+  InitAudioDevice();
+
+  // Variables for timing
+  float BPM = 90.0f;  // Beats per minute
+  float beatDuration = 30.0f / BPM;  // Duration of a single beat in seconds
+  float timeSinceLastBeat = 0.0f;
+  int currentNote = 0;
+  float timeSinceLastNote = 0.0f;
+  float currentNoteDuration = 0.0f;
+
+  while (!WindowShouldClose()){
+    // Update the timer
+    timeSinceLastBeat += GetFrameTime();
+    timeSinceLastNote += GetFrameTime();
+
+    // If the time since the last note exceeds the note duration, play the next note
+    if (timeSinceLastNote >= currentNoteDuration){
+      // Define the notes and durations for the first part of the song
+      float notes1[] = {C4, C4, G4, G4, A4, A4, G4};
+      float notes2[] = {E4, 0.0f, B4, 0.0f, C5, C5, B4};
+      float durations[] = {1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 2.0f};  // In beats
+
+      // Calculate the duration of a single beat in seconds
+      float beatDuration = 60.0f / BPM;
+
+      // Start a new thread to play the note
+      pthread_t thread1, thread2;
+      float args1[] = {notes1[currentNote], durations[currentNote] * beatDuration};
+      float args2[] = {notes2[currentNote], durations[currentNote] * beatDuration};
+      pthread_create(&thread1, NULL, playNote, args1);
+      pthread_create(&thread2, NULL, playNote, args2);
+
+      // Update the current note duration and reset the timer
+      currentNoteDuration = durations[currentNote] * beatDuration;
+      timeSinceLastNote = 0.0f;
+
+      // Move to the next note
+      currentNote = (currentNote + 1) % (sizeof(notes1) / sizeof(float));
     }
 
-    if (dragWindow) {
-      windowPosition.x += mousePosition.x - panOffset.x;
-      windowPosition.y += mousePosition.y - panOffset.y;
-
-      SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
-
-      if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
-        dragWindow = false;
-    }
-
-    double posMaze2Dx = centerX / 2;
-    double posMaze2Dy = centerY;
-    Vector2 mazeOffset2D = {posMaze2Dx - texMaze.width / 2 * MAZE_DRAW_SCALE,
-                            posMaze2Dy - texMaze.height / 2 * MAZE_DRAW_SCALE};
-
-    int mazeX = (mousePosition.x - mazeOffset2D.x) /
-                MAZE_DRAW_SCALE; // NOLINT(*-narrowing-conversions)
-    int mazeY = (mousePosition.y - mazeOffset2D.y) / MAZE_DRAW_SCALE;
-
-    double posMaze3Dx = SCREEN_WIDTH - posMaze2Dx;
-    double posMaze3Dy = posMaze2Dy;
-    Vector2 mazeOffset3D = {posMaze3Dx - texMaze.width / 2 * MAZE_DRAW_SCALE,
-                            posMaze3Dy - texMaze.height / 2 * MAZE_DRAW_SCALE};
-
-    if (IsKeyPressed(KEY_S)) {
-      ExportMaze(&imMaze);
-    }
-
-    if (IsKeyPressed(KEY_F)) {
-
-      path = AStarPath(imMaze, exitPoints[0], exitPoints[1]);
-
-      if (path.x != 0 && path.y != 0) {
-        printf("Path found\n");
-
-      } else {
-        printf("Path not found\n");
-      }
-    }
-
-    if (IsKeyPressed(KEY_R)) {
-
-      imMaze = GenerateMaze(mazePoints);
-      UnloadTexture(texMaze);
-      texMaze = LoadTextureFromImage(imMaze);
-    }
-
-    if (IsKeyPressed(KEY_P)) {
-
-      imMaze = ImageCopy(copy);
-      path = AStarPath(imMaze, exitPoints[0], exitPoints[1]);
-      DrawPathOnImage(&path, &imMaze);
-      UnloadTexture(texMaze);
-      texMaze = LoadTextureFromImage(imMaze);
-    }
-
-    if (IsKeyPressed(KEY_C)) {
-      copy = ImageCopy(imMaze);
-      UnloadTexture(texMaze);
-      texMaze = LoadTextureFromImage(imMaze);
-    }
-
-    if (IsKeyPressed(KEY_Z)) {
-      imMaze = ImageCopy(copy);
-      UnloadTexture(texMaze);
-      texMaze = LoadTextureFromImage(imMaze);
-    }
-
-    // Draw
-    //----------------------------------------------------------------------------------
     BeginDrawing();
-    exitWindow = GuiWindowBox((Rectangle){0, 0, SCREEN_WIDTH, SCREEN_HEIGHT},
-                              "#2# Practica 4 - Raylib Maze 3D");
-    ClearBackground(GRAY);
-    EditMaze(&imMaze, &copy, &texMaze, mazeX, mazeY);
-    BeginMode3D(orbitalCam);
-    if (!cameraIsFps) {
-      Draw3DIntoTextureOrbital(targetTexture, &imMaze, mazeOffset3D, orbitalCam,
-                               planeModel, cubeModel);
-      DrawTextureEx(texMaze, mazeOffset2D, 0, MAZE_DRAW_SCALE, WHITE);
-    } else {
-      Draw3DFirstPerson(&imMaze, firstPersonCamera, planeModel, cubeModel);
-    }
-    EndMode3D();
-    DrawText(TextFormat("FPS: %i", GetFPS()), SCREEN_WIDTH - 80,
-             SCREEN_HEIGHT - 45, 20, RED);
+    ClearBackground(RAYWHITE);
 
-    DrawUI(&imMaze, &firstPersonCamera, &orbitalCam, &cameraIsFps);
     EndDrawing();
-    //----------------------------------------------------------------------------------
-  }
-  UnloadTexture(texMaze);
-  // De-Initialization
-  //--------------------------------------------------------------------------------------
-  CloseWindow(); // Close window and OpenGL context
-  //--------------------------------------------------------------------------------------
-  return 0;
-}
-
-void InitializeGame() {
-  SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-  InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Practica 4 - Raylib Maze 3D");
-  GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(WHITE));
-  GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
-  GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, ColorToInt(DARKGRAY));
-  GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(GRAY));
-  SetTargetFPS(144); // Set our game to run at 60 frames-per-second
-}
-
-Image GenerateMaze(Point *mazePoints) {
-  // Draw the border of the maze
-  int mazePointCounter = 0;
-  Image imMaze = GenImageColor(MAZE_WIDTH, MAZE_HEIGHT, BLACK);
-  for (int x = 0; x < imMaze.width; x++) {
-    for (int y = 0; y < imMaze.height; y++) {
-      if (x == 0 || x == imMaze.width - 1 || y == 0 || y == imMaze.height - 1) {
-        // Create exit points at opposite corners
-        if ((x == exitPoints[0].x && y == exitPoints[0].y) ||
-            (x == exitPoints[1].x && y == exitPoints[1].y)) {
-          continue;
-        }
-        ImageDrawPixel(&imMaze, x, y, WHITE);
-      } else if (x % 3 == 0 && y % 3 == 0) {
-        if (GetRandomValue(0, 3) > 2) {
-          ImageDrawPixel(&imMaze, x, y, WHITE);
-          mazePoints[mazePointCounter] = (Point){x, y};
-          mazePointCounter++;
-        }
-      }
-    }
   }
 
-  // Randomly select points and draw lines between them
-  for (int i = 0; i < mazePointCounter; i++) {
-    Point currentPoint = mazePoints[i];
-    const Point currentDir = direction[GetRandomValue(0, 3)];
-    currentPoint.x += currentDir.x;
-    currentPoint.y += currentDir.y;
-
-    while (GetImageColor(imMaze, currentPoint.x, currentPoint.y).r != 255) {
-      ImageDrawPixel(&imMaze, currentPoint.x, currentPoint.y, WHITE);
-      currentPoint.x += currentDir.x;
-      currentPoint.y += currentDir.y;
-    }
-  }
-
-  return imMaze;
-}
-
-Camera InitOrbitCamera() {
-  Camera camera = {0};
-  camera.position = (Vector3){70.0f, 70, 70.0f}; // Camera position
-  camera.target = (Vector3){0.0f, 0.0f, 0.0f};   // Camera looking at point
-  camera.fovy = 45.0f;                           // Camera field-of-view Y
-  camera.up =
-      (Vector3){0.0f, 2.0f, 0.0f}; // Camera up vector (rotation towards target)
-
-  camera.projection = CAMERA_PERSPECTIVE;
-
-  return camera;
-}
-
-Camera InitFirstPersonCamera() {
-  Camera camera = {0};
-  camera.position = (Vector3){0, 0.5f, 4};     // Camera position
-  camera.target = (Vector3){0.0f, 2.0f, 0.0f}; // Camera looking at point
-  camera.up =
-      (Vector3){0.0f, 1.0f, 0.0f}; // Camera up vector (rotation towards target)
-  camera.fovy = 90.0f;             // Camera field-of-view Y
-
-  camera.projection = CAMERA_PERSPECTIVE;
-
-  // Initialize player bounding box
-  playerBoundingBox.min =
-      (Vector3){camera.position.x - 0.25f, 0.0f, camera.position.z - 0.25f};
-  playerBoundingBox.max =
-      (Vector3){camera.position.x + 0.25f, 2.0f, camera.position.z + 0.25f};
-
-  return camera;
-}
-
-// Function to generate procedural textures
-
-// Function to create a 3D model
-// Function to create a 3D model with error checking
-Model CreateModel(const Mesh mesh) {
-  if (!mesh.vboId) {
-    printf("Error: Failed to create model. Invalid mesh.\n");
-    return (Model){0};
-  }
-
-  // Load the mesh into a model
-  const Model model = LoadModelFromMesh(mesh);
-
-  return model;
-}
-
-// Function to apply the texture to the model with error checking
-void ApplyTextureToModel(const Model *model, const Texture2D texture) {
-  if (!texture.id) {
-    printf("Error: Failed to apply texture. Invalid texture.\n");
-    return;
-  }
-
-  // Apply the texture to the model
-  model->materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = texture;
-}
-
-// Function to draw the model with more customization options
-void DrawModelInGame(const Model model, const Vector3 position,
-                     const float scale, const Color color) {
-  // Draw the model
-  DrawModel(model, position, scale, color);
-}
-
-void Draw3D(const Image *imMaze, const Model planeModel,
-            const Model cubeModel) {
-  // Draw black pixels as walls and white pixels as paths
-  for (int y = 0; y < imMaze->height; y++) {
-    for (int x = 0; x < imMaze->width; x++) {
-      DrawPlane((Vector3){x - imMaze->width / 2, 0.0f, y - imMaze->height / 2},
-                (Vector2){1.0f, -1.0f}, DARKGRAY);
-      DrawModelInGame(
-          planeModel,
-          (Vector3){x - imMaze->width / 2, 0.0f, y - imMaze->height / 2}, 1.0f,
-          DARKGRAY);
-
-      if (GetImageColor(*imMaze, x, y).r == 255) {
-        DrawModelInGame(
-            cubeModel,
-            (Vector3){x - imMaze->width / 2, 0.5f, y - imMaze->height / 2},
-            1.0f, WHITE);
-      } else if (GetImageColor(*imMaze, x, y).r == 0 &&
-                 GetImageColor(*imMaze, x, y).g == 255 &&
-                 GetImageColor(*imMaze, x, y).b == 0) {
-        DrawCube((Vector3){x - imMaze->width / 2, 3.0f, y - imMaze->height / 2},
-                 1.0f, 5.0f, 1.0f, Fade(GREEN, 0.5f));
-      }
-    }
-  }
-}
-
-void Draw3DIntoTextureOrbital(const RenderTexture2D target, const Image *imMaze,
-                              const Vector2 mazeOffset3D, const Camera cam,
-                              const Model planeModel, const Model cubeModel) {
-  BeginTextureMode(target);
-  ClearBackground(LIGHTGRAY);
-  BeginMode3D(cam);
-  Draw3D(imMaze, planeModel, cubeModel);
-  EndMode3D();
-  EndTextureMode();
-  DrawTexturePro(
-      target.texture,
-      (Rectangle){0, 0, target.texture.width, -target.texture.height},
-      (Rectangle){mazeOffset3D.x, mazeOffset3D.y, MAZE_WIDTH * MAZE_DRAW_SCALE,
-                  MAZE_HEIGHT * MAZE_DRAW_SCALE},
-      (Vector2){0, 0}, 0, WHITE);
-}
-
-void Draw3DFirstPerson(const Image *imMaze, const Camera cam,
-                       const Model planeModel, const Model cubeModel) {
-
-  ClearBackground(LIGHTGRAY);
-  BeginMode3D(cam);
-  Draw3D(imMaze, planeModel, cubeModel);
-  EndMode3D();
-}
-
-void EditMaze(Image *imMaze, Image *copy, Texture2D *texMaze, const int mazeX,
-              const int mazeY) {
-
-  static Color prevColor = {0};
-  static int prevX = -1, prevY = -1;
-  if (mazeX >= 0 && mazeX < texMaze->width && mazeY >= 0 &&
-      mazeY < texMaze->height && !cameraIsFps) {
-    if (IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-      ImageDrawPixel(imMaze, mazeX, mazeY, WHITE);
-      prevColor = WHITE;
-      UnloadTexture(*texMaze);
-      *texMaze = LoadTextureFromImage(*imMaze);
-    } else if (prevX != mazeX || prevY != mazeY) {
-      if (prevX != -1 && prevY != -1)
-        ImageDrawPixel(imMaze, prevX, prevY, prevColor);
-
-      prevColor = GetImageColor(*imMaze, mazeX, mazeY);
-      prevX = mazeX;
-      prevY = mazeY;
-      ImageDrawPixel(imMaze, mazeX, mazeY, (Color){0, 255, 0, 255});
-
-      UnloadTexture(*texMaze);
-      *texMaze = LoadTextureFromImage(*imMaze);
-    }
-  } else if (cameraIsFps) {
-    ImageDrawPixel(imMaze, prevX, prevY, prevColor);
-  }
-}
-
-Texture2D GenerateSquareTexture(const int size, const Color squareColor,
-                                const Color backgroundColor) {
-  // Create an image
-  Image image = GenImageColor(size, size, backgroundColor);
-
-  // Draw a square in the center of the image
-  const int squareSize = size / 2;
-  const int squareOffset = (size - squareSize) / 2;
-  ImageDrawRectangle(&image, squareOffset, squareOffset, squareSize, squareSize,
-                     squareColor);
-
-  // Load the image into a texture
-  const Texture2D texture = LoadTextureFromImage(image);
-
-  // Unload the image from memory
-  UnloadImage(image);
-
-  return texture;
-}
-
-void CameraMovementFPS(Camera *firstPersonCamera, const Image *imMaze) {
-  // Update player bounding box
-  Vector3 oldPosition = firstPersonCamera->position;
-  UpdateCamera(firstPersonCamera, CAMERA_FIRST_PERSON);
-  Vector3 deltaPosition =
-      Vector3Subtract(firstPersonCamera->position, oldPosition);
-  playerBoundingBox.min = Vector3Add(playerBoundingBox.min, deltaPosition);
-  playerBoundingBox.max = Vector3Add(playerBoundingBox.max, deltaPosition);
-
-  // Check for collisions with walls
-  for (int y = 0; y < imMaze->height; y++) {
-    for (int x = 0; x < imMaze->width; x++) {
-      if (GetImageColor(*imMaze, x, y).r == 255) {
-        BoundingBox wallBoundingBox;
-        wallBoundingBox.min = (Vector3){x - imMaze->width / 2 - 0.4f, 0.0f,
-                                        y - imMaze->height / 2 - 0.4f};
-        wallBoundingBox.max = (Vector3){x - imMaze->width / 2 + 0.4f, 2.0f,
-                                        y - imMaze->height / 2 + 0.4f};
-
-        if (CheckCollisionBoxes(playerBoundingBox, wallBoundingBox)) {
-          // Collision detected, move player back
-          firstPersonCamera->position = oldPosition;
-          playerBoundingBox.min =
-              Vector3Subtract(playerBoundingBox.min, deltaPosition);
-          playerBoundingBox.max =
-              Vector3Subtract(playerBoundingBox.max, deltaPosition);
-          break;
-        }
-      }
-    }
-  }
-}
-
-void ExportMaze(const Image *imMaze) {
-  ExportImage(*imMaze, "maze.png");
-
-  Mesh mesh = GenMeshCubicmap(*imMaze, (Vector3){1.0f, 1.0f, 1.0f});
-  ExportMesh(mesh, ".../exports/maze.obj");
-}
-
-void DrawUI(Image *imMaze, Camera *firstPersonCamera, Camera *orbitalCam,
-            bool *cameraIsFps) {
-  // Draw a button for changing the view
-  if (GuiButton((Rectangle){10, 10, 150, 30}, "Change View")) {
-    *cameraIsFps = !*cameraIsFps;
-    CursorToggle();
-  }
-
-  // Draw a button for exporting the maze
-  if (GuiButton((Rectangle){10, 50, 150, 30}, "Export Maze")) {
-    ExportMaze(imMaze);
-  }
-}
-
-void CursorToggle() {
-  if (cameraIsFps && !cursorDisabled) {
-    DisableCursor();
-    cursorDisabled = true;
-  } else if (!cameraIsFps && cursorDisabled) {
-    EnableCursor();
-    cursorDisabled = false;
-  }
-}
-
-NodeA *createNode(int x, int y) {
-  NodeA *newNode = (NodeA *)malloc(sizeof(NodeA));
-  newNode->x = x;
-  newNode->y = y;
-  newNode->gScore = 1e9;
-  newNode->fScore = 1e9;
-  newNode->parent = NULL;
-  return newNode;
-}
-
-int heuristic(NodeA *a, NodeA *b) {
-  // Use Manhattan distance as heuristic
-  return abs(a->x - b->x) + abs(a->y - b->y);
-}
-
-NodeA AStarPath(Image imMaze, Point start, Point goal) {
-  NodeA *startNode = createNode(start.x, start.y);
-  NodeA *goalNode = createNode(goal.x, goal.y);
-  startNode->gScore = 0;
-  startNode->fScore = heuristic(startNode, goalNode);
-  NodeA *openSet[MAZE_WIDTH * MAZE_HEIGHT];
-  NodeA *closedSet[MAZE_WIDTH * MAZE_HEIGHT];
-  int openSetSize = 0;
-  int closedSetSize = 0;
-  openSet[openSetSize++] = startNode;
-
-  while (openSetSize > 0) {
-    NodeA *current = openSet[0];
-    int currentIdx = 0;
-    for (int i = 1; i < openSetSize; i++) {
-      if (openSet[i]->fScore < current->fScore) {
-        current = openSet[i];
-        currentIdx = i;
-      }
-    }
-
-    if (current->x == goalNode->x && current->y == goalNode->y) {
-
-      // copy current to solution
-      NodeA solution = *current;
-
-      return solution;
-    }
-
-    openSet[currentIdx] = openSet[openSetSize - 1];
-    openSetSize--;
-
-    closedSet[closedSetSize++] = current;
-
-    for (int i = 0; i < 4; i++) {
-      int x = current->x + direction[i].x;
-      int y = current->y + direction[i].y;
-
-      if (x < 0 || x >= MAZE_WIDTH || y < 0 || y >= MAZE_HEIGHT) {
-        continue;
-      }
-
-      if (GetImageColor(imMaze, x, y).r == 255) {
-        continue;
-      }
-
-      NodeA *neighbor = createNode(x, y);
-
-      bool inClosedSet = false;
-      for (int j = 0; j < closedSetSize; j++) {
-        if (closedSet[j]->x == neighbor->x && closedSet[j]->y == neighbor->y) {
-          inClosedSet = true;
-          break;
-        }
-      }
-
-      if (inClosedSet) {
-        continue;
-      }
-
-      int tentativeGScore = current->gScore + 1;
-      bool inOpenSet = false;
-      for (int j = 0; j < openSetSize; j++) {
-        if (openSet[j]->x == neighbor->x && openSet[j]->y == neighbor->y) {
-          inOpenSet = true;
-          break;
-        }
-      }
-      if (!inOpenSet || tentativeGScore < neighbor->gScore) {
-        neighbor->parent = current;
-        neighbor->gScore = tentativeGScore;
-        neighbor->fScore = neighbor->gScore + heuristic(neighbor, goalNode);
-        if (!inOpenSet) {
-          openSet[openSetSize++] = neighbor;
-        }
-      }
-    }
-  }
-
-  return (NodeA){0};
-}
-
-void DrawPathOnImage(NodeA *path, Image *imMaze) {
-  NodeA *currentNode = path;
-  while (currentNode != NULL) {
-    ImageDrawPixel(imMaze, currentNode->x, currentNode->y, RED);
-    currentNode = currentNode->parent;
-  }
+  CloseWindow();
 }
