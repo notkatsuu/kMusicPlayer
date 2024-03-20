@@ -1,0 +1,3 @@
+gcc -pg -o myprogram main.c -IC:/raylib/src -Iinclude -LC:/raylib/src -lraylib -lwinmm -lgdi32
+
+gprof myprogram.exe gmon.out > analysis.txt
