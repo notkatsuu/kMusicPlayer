@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.11) # FetchContent is available in 3.11+
-project(Delivery04)
+cmake_minimum_required(VERSION 3.6) # FetchContent is available in 3.11+
+project(kAudioVisualizer)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -27,8 +27,12 @@ endif()
 
 add_executable(${PROJECT_NAME} main.c)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCES_PATH="${CMAKE_SOURCE_DIR}/resources/")
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
+#link raygui, in /include/raylib.h
+
+
 
 # Web Configurations
 if (${PLATFORM} STREQUAL "Web")

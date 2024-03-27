@@ -1,178 +1,180 @@
-#include <math.h>
 #include <raylib.h>
+#include <math.h>
+#include <stdio.h>
+
+#define RAYGUI_IMPLEMENTATION
+
+#include "raygui.h"
+
+
 #include <stdlib.h>
-#include <pthread.h>
-#include <notes.h>
 
-#define TWO_PI (2.0f * PI)
-#define MAX_BUFFERS 100
-#define SAMPLE_RATE 48000
-#define VOLUME 0.04f
 
-typedef struct {
-  float* buffer;
-  int length;
-  float frequency;
-  int sampleRate;
-  float volume;
-} SoundProperties;
+#define MAX_SAMPLES_PER_UPDATE 1024
 
-typedef struct {
-  float frequency;
-  float moment;
-  float duration;
-} Note;
+void DrawWaveData(float *waveData, int numSamples, int drawFactor, Rectangle bounds);
 
-typedef struct NoteNode {
-  Note note;
-  bool played;
-  struct NoteNode* next;
-} NoteNode;
 
-SoundProperties bufferPool[MAX_BUFFERS];
-int nextBuffer = 0;
-float BPM = 90.0f;  // Beats per minute
-float timeCounter = 0.0f;
-float loopTime = 30.0f;
 
-// Function declarations
-void freeSound(SoundProperties sound);
-void createSound(SoundProperties* sound, int sampleRate, float wavePeriod, float frequency, float volume);
-SoundProperties* getBuffer();
-void generatePianoSound(float* buffer, int length, float frequency, int sampleRate);
-void *playNote(void *arg);
+int main(void) {
+    // Initialization
+    const int screenWidth = 800;
+    const int screenHeight = 450;
 
-// Main function
-void main(){
-  const int screenWidth = 800;
-  const int screenHeight = 450;
-  InitWindow(screenWidth, screenHeight, "Sound Generation");
-  InitAudioDevice();
 
-  NoteNode* notes1 = NULL;
-  NoteNode* lastNote = NULL;
+    SetConfigFlags(FLAG_WINDOW_UNDECORATED);
+    InitWindow(screenWidth, screenHeight, "Practica 4 - Raylib Maze 3D");
+    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(WHITE));
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
+    GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, ColorToInt(DARKGRAY));
+    GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(GRAY));
+    SetTargetFPS(144); // Set our game to run at 60 frames-per-second
 
-  // Initialize the notes
-  Note notesArray[] = {{C3, 0.0f, 1.0f}, {E3, 1.0f, 1.0f}, {G3, 2.0f, 1.0f}, {C4, 3.0f, 1.0f}, {G3, 4.0f, 1.0f}, {E3, 5.0f, 1.0f}};
-  for (int i = 0; i < sizeof(notesArray) / sizeof(Note); i++) {
-    NoteNode* newNode = (NoteNode*)malloc(sizeof(NoteNode));
-    newNode->note = notesArray[i];
-    newNode->played = false;
-    newNode->next = NULL;
-    if (lastNote == NULL) {
-      notes1 = newNode;
-    } else {
-      lastNote->next = newNode;
-    }
-    lastNote = newNode;
-  }
+    Vector2 mousePosition = {0};
+    Vector2 panOffset = mousePosition;
 
-  //set looptime to the moment + duration of the last note
-  loopTime = lastNote->note.moment + lastNote->note.duration;
-  loopTime*= (60.0f / BPM);
+    bool dragWindow = false;
+    bool exitWindow = false;
 
-  while (!WindowShouldClose()){
-    // Update the timer
-    float frameTime = GetFrameTime();
-    timeCounter += frameTime;
-    pthread_t thread1;
+    Vector2 windowPosition = {500, 200};
+    SetWindowPosition(windowPosition.x, windowPosition.y);
 
-    for (NoteNode* node = notes1; node != NULL; node = node->next) {
-      // Only play the note if its moment has come and it hasn't been played yet
-      if (fmod(timeCounter, loopTime) >= node->note.moment * (60.0f / BPM) && !node->played){
-        // Wait for the previous note's thread to finish before starting a new one
-        if (node != notes1) {
-          pthread_join(thread1, NULL);
+    RenderTexture2D target = LoadRenderTexture(screenWidth, screenHeight);
+
+
+    InitAudioDevice();      // Initialize audio device
+
+    Wave wave = LoadWave(RESOURCES_PATH"audio.mp3"); // Load music file
+    Sound sound = LoadSoundFromWave(wave); // Convert wave to sound to play it
+
+
+
+
+    // Initialization
+    float elapsedTime = 0.0f;
+    // Get total duration of the wave
+    float totalDuration = (float) wave.frameCount / wave.sampleRate;
+
+    PlaySound(sound); // Play the sound
+
+    SetTargetFPS(60);       // Set our game to run at 60 frames-per-second
+
+    // Get the wave data
+    float *waveData = wave.data;
+
+    // Initialize camera
+    Camera2D camera = {0};
+    camera.target = (Vector2) {screenWidth / 2, screenHeight / 2};
+    camera.offset = (Vector2) {screenWidth / 2, screenHeight / 2};
+    camera.rotation = 0.0f;
+    camera.zoom = 8.0f;
+
+    int drawFactor = 1000; // Adjust this value to change the number of lines drawn
+    int numSamples = wave.frameCount;
+    Vector2 *points = malloc((numSamples / drawFactor) * sizeof(Vector2));
+
+    // Main game loop
+    // Main game loop
+    while (!exitWindow && !WindowShouldClose()) {
+
+        // Update
+        //----------------------------------------------------------------------------------
+        elapsedTime += GetFrameTime(); // Update elapsed time
+        mousePosition = GetMousePosition();
+
+        // Update camera
+        camera.target.x = elapsedTime / totalDuration * screenWidth;
+        camera.offset = (Vector2) {screenWidth / 2, screenHeight / 2}; // Center the camera
+
+
+        // Update zoom level based on mouse wheel
+        float mouseWheelMove = GetMouseWheelMove();
+        camera.zoom += mouseWheelMove * 0.25f;
+        if (camera.zoom > 30.0f) camera.zoom = 30.0f;
+        if (camera.zoom < 0.1f) camera.zoom = 0.1f;
+
+        if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) {
+            if (CheckCollisionPointRec(mousePosition,
+                                       (Rectangle){0, 0, screenWidth, 20})) {
+                dragWindow = true;
+                panOffset = mousePosition;
+            }
         }
-        // Start a new thread to play the note
-        node->played = true;
-        pthread_create(&thread1, NULL, playNote, &node->note);
-      }
+
+        if (dragWindow) {
+            windowPosition.x += mousePosition.x - panOffset.x;
+            windowPosition.y += mousePosition.y - panOffset.y;
+
+            SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
+
+            if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+                dragWindow = false;
+        }
+
+        // Draw
+        BeginDrawing();
+
+        exitWindow = GuiWindowBox((Rectangle) {0, 0, screenWidth, screenHeight},
+                                  "kAudio");
+
+
+        BeginTextureMode(target); // Begin drawing to texture
+
+        ClearBackground(BLACK); // Clear the texture background
+
+        BeginMode2D(camera); // Begin 2D mode with camera
+
+        // Draw wave data
+        Rectangle bounds = {0, 0, screenWidth, screenHeight};
+        DrawWaveData(waveData, numSamples, drawFactor, bounds);
+
+
+
+
+        EndMode2D(); // End 2D mode
+
+        EndTextureMode(); // End drawing to texture
+
+        BeginDrawing();
+
+
+
+        // Draw the texture
+        DrawTexturePro(target.texture, (Rectangle){0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height}, (Rectangle){0.0f, 25.0f, (float)screenWidth, (float)screenHeight-25}, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
+
+        DrawLine(screenWidth/2, 25, screenWidth/2, screenHeight, WHITE); // Draw the bar from top to bottom of the screen
+
+        EndDrawing();
     }
 
-    // Reset the notes1Played array and the timeCounter variable when the loop restarts
-    if (timeCounter >= loopTime) {
-      for (NoteNode* node = notes1; node != NULL; node = node->next) {
-        node->played = false;
-      }
-      timeCounter -= loopTime;
+    // De-Initialization
+    UnloadSound(sound);     // Unload sound data
+    UnloadWave(wave);       // Unload wave data
+    UnloadRenderTexture(target); // Unload render texture
+    CloseAudioDevice();     // Close audio device (music streaming is automatically stopped)
+
+    CloseWindow();          // Close window and OpenGL context
+
+    return 0;
+
+}
+
+void DrawWaveData(float *waveData, int numSamples, int drawFactor, Rectangle bounds) {
+    float sampleWidth = bounds.width / numSamples;
+    float sampleHeight = bounds.height / 2;
+    int newNumSamples = numSamples / drawFactor;
+    Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
+
+// Draw wave data
+    for (int i = 0; i < newNumSamples; i++) {
+        // Calculate the position of the point
+        points[i] = (Vector2) {(float) i * drawFactor / numSamples * bounds.width / 2,
+                               bounds.height / 2 - waveData[i * drawFactor] * 50};
     }
 
-    BeginDrawing();
-    ClearBackground(RAYWHITE);
-    EndDrawing();
-  }
+// Draw the polyline
+    DrawLineStrip(points, newNumSamples, DARKGRAY);
 
-  CloseWindow();
-}
+    free(points); // Don't forget to free the allocated memory
 
-// Function definitions
-void freeSound(SoundProperties sound) {
-  free(sound.buffer);
-}
-
-void createSound(SoundProperties* sound, int sampleRate, float wavePeriod, float frequency, float volume) {
-  sound->sampleRate = sampleRate;
-  sound->frequency = frequency;
-  sound->length = sampleRate / wavePeriod;
-  sound->buffer = (float *)malloc(sound->length * sizeof(float));
-  sound->volume = volume;
-}
-
-SoundProperties* getBuffer() {
-  if (nextBuffer >= MAX_BUFFERS) {
-    nextBuffer = 0;  // Wrap around to the start of the pool
-  }
-  return &bufferPool[nextBuffer++];
-}
-
-void generatePianoSound(float* buffer, int length, float frequency, int sampleRate) {
-  // Parameters for the piano sound
-  int numOvertones = 6;  // Number of overtones
-  float decayFactor = 0.0004f * 2.0f * PI * frequency;  // Decay factor for the exponential decay
-
-  // Generate the fundamental frequency and overtones
-  for (int i = 0; i < length; i++) {
-    float time = (float)i / sampleRate;
-    float value = 0.0f;
-    for (int overtone = 1; overtone <= numOvertones; overtone++) {
-      float overtoneFrequency = frequency * overtone;
-      float increment = overtoneFrequency * TWO_PI;
-      value += sinf(increment * time) * expf(-decayFactor * time * overtone) / powf(2, overtone - 1);
-    }
-
-    // Add saturation
-    value += value * value * value;
-
-    // Apply an envelope to make the sound more realistic
-    value *= 1 + 16 * time * expf(-6 * time);
-
-    buffer[i] = value;
-  }
-}
-
-void *playNote(void *arg) {
-  // Extract the note and duration from the argument
-  Note *note = (Note *)arg;
-
-  // Convert the duration from beats to seconds
-  float durationInSeconds = note->duration * (60.0f / BPM);
-
-  // If it's not a rest, play the note as usual
-  SoundProperties* noteSoundProps = getBuffer();
-  createSound(noteSoundProps, SAMPLE_RATE, durationInSeconds, note->frequency, VOLUME);
-  generatePianoSound(noteSoundProps->buffer, noteSoundProps->length,
-                     noteSoundProps->frequency, noteSoundProps->sampleRate);
-  Wave noteWave = {
-      .frameCount = noteSoundProps->length,
-      .sampleRate = noteSoundProps->sampleRate,
-      .sampleSize = 32,
-      .channels = 1,
-      .data = noteSoundProps->buffer
-  };
-  Sound noteSound = LoadSoundFromWave(noteWave);
-  SetSoundVolume(noteSound, noteSoundProps->volume);
-  PlaySound(noteSound);
-
-  return NULL;
 }
