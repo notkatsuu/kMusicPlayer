@@ -1,26 +1,17 @@
 #include <raylib.h>
-#include <math.h>
 #include <stdio.h>
+#include "tinyfiledialogs.h"
 
 #define RAYGUI_IMPLEMENTATION
-
 #include "raygui.h"
-
-
 #include <stdlib.h>
 
+void DrawVerticalLines(float *waveData, int numSamples, int drawFactor);
 
-#define MAX_SAMPLES_PER_UPDATE 1024
-
-void DrawWaveData(float *waveData, int numSamples, int drawFactor, Rectangle bounds);
-
-
+const int screenWidth = 800;
+const int screenHeight = 450;
 
 int main(void) {
-    // Initialization
-    const int screenWidth = 800;
-    const int screenHeight = 450;
-
 
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     InitWindow(screenWidth, screenHeight, "Practica 4 - Raylib Maze 3D");
@@ -44,11 +35,24 @@ int main(void) {
 
     InitAudioDevice();      // Initialize audio device
 
-    Wave wave = LoadWave(RESOURCES_PATH"audio.mp3"); // Load music file
+    char const * directoryPath = tinyfd_selectFolderDialog("Select a directory", NULL);
+
+    FilePathList files = LoadDirectoryFiles(directoryPath);
+    Wave* waves = malloc(files.count * sizeof(Wave));
+    int waveCount = 0; // Keep track of the number of waves loaded
+
+    Sound* sounds = malloc(files.count * sizeof(Sound));
+    for (int i = 0; i < files.count; i++) {
+        if (IsFileExtension(files.paths[i], ".mp3") || IsFileExtension(files.paths[i], ".wav")) {
+            waves[waveCount] = LoadWave(files.paths[i]);
+            sounds[waveCount] = LoadSoundFromWave(waves[waveCount]);
+            waveCount++;
+        }
+    }
+
+    int currentTrack = 0;
+    Wave wave = waves[currentTrack];
     Sound sound = LoadSoundFromWave(wave); // Convert wave to sound to play it
-
-
-
 
     // Initialization
     float elapsedTime = 0.0f;
@@ -59,28 +63,30 @@ int main(void) {
 
     SetTargetFPS(60);       // Set our game to run at 60 frames-per-second
 
-    // Get the wave data
-    float *waveData = wave.data;
-
     // Initialize camera
-    Camera2D camera = {0};
-    camera.target = (Vector2) {screenWidth / 2, screenHeight / 2};
-    camera.offset = (Vector2) {screenWidth / 2, screenHeight / 2};
-    camera.rotation = 0.0f;
-    camera.zoom = 8.0f;
+    Camera2D camera = (Camera2D){{screenWidth / 2, screenHeight / 2}, {screenWidth / 2, screenHeight / 2}, 0.0f, 8.0f};
 
     int drawFactor = 1000; // Adjust this value to change the number of lines drawn
     int numSamples = wave.frameCount;
     Vector2 *points = malloc((numSamples / drawFactor) * sizeof(Vector2));
 
     // Main game loop
-    // Main game loop
-    while (!exitWindow && !WindowShouldClose()) {
+    while (!exitWindow && !WindowShouldClose()) { // Update ----------------------------------------------------------------
 
-        // Update
-        //----------------------------------------------------------------------------------
         elapsedTime += GetFrameTime(); // Update elapsed time
         mousePosition = GetMousePosition();
+
+
+        if (IsKeyPressed(KEY_P)) {
+            StopSound(sound);
+            currentTrack = (currentTrack + 1) % waveCount;
+            sound = sounds[currentTrack];
+            PlaySound(sound);
+            wave = waves[currentTrack];
+            totalDuration = (float) wave.frameCount / wave.sampleRate;
+            elapsedTime = 0.0f;
+        }
+
 
         // Update camera
         camera.target.x = elapsedTime / totalDuration * screenWidth;
@@ -104,50 +110,39 @@ int main(void) {
         if (dragWindow) {
             windowPosition.x += mousePosition.x - panOffset.x;
             windowPosition.y += mousePosition.y - panOffset.y;
-
             SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
-
             if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
                 dragWindow = false;
         }
 
         // Draw
+        //----------------------------------------------------------------------------------
         BeginDrawing();
-
         exitWindow = GuiWindowBox((Rectangle) {0, 0, screenWidth, screenHeight},
                                   "kAudio");
 
-
         BeginTextureMode(target); // Begin drawing to texture
-
+        BeginMode2D(camera); // Begin 2D mode with camera
         ClearBackground(BLACK); // Clear the texture background
 
-        BeginMode2D(camera); // Begin 2D mode with camera
-
-        // Draw wave data
-        Rectangle bounds = {0, 0, screenWidth, screenHeight};
-        DrawWaveData(waveData, numSamples, drawFactor, bounds);
-
-
-
+        DrawVerticalLines(wave.data, wave.frameCount, drawFactor);
 
         EndMode2D(); // End 2D mode
-
         EndTextureMode(); // End drawing to texture
 
         BeginDrawing();
-
-
-
-        // Draw the texture
         DrawTexturePro(target.texture, (Rectangle){0.0f, 0.0f, (float)target.texture.width, (float)-target.texture.height}, (Rectangle){0.0f, 25.0f, (float)screenWidth, (float)screenHeight-25}, (Vector2){0.0f, 0.0f}, 0.0f, WHITE);
-
         DrawLine(screenWidth/2, 25, screenWidth/2, screenHeight, WHITE); // Draw the bar from top to bottom of the screen
 
         EndDrawing();
     }
 
     // De-Initialization
+    //--------------------------------------------------------------------------------------
+    free(points); // Unload points memory
+    free(waves); // Unload waves memory
+    free(sounds); // Unload sounds memory
+    UnloadDirectoryFiles(files);
     UnloadSound(sound);     // Unload sound data
     UnloadWave(wave);       // Unload wave data
     UnloadRenderTexture(target); // Unload render texture
@@ -159,22 +154,15 @@ int main(void) {
 
 }
 
-void DrawWaveData(float *waveData, int numSamples, int drawFactor, Rectangle bounds) {
-    float sampleWidth = bounds.width / numSamples;
-    float sampleHeight = bounds.height / 2;
+void DrawVerticalLines(float *waveData, int numSamples, int drawFactor) {
+
     int newNumSamples = numSamples / drawFactor;
     Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
-
-// Draw wave data
     for (int i = 0; i < newNumSamples; i++) {
         // Calculate the position of the point
-        points[i] = (Vector2) {(float) i * drawFactor / numSamples * bounds.width / 2,
-                               bounds.height / 2 - waveData[i * drawFactor] * 50};
+        points[i] = (Vector2) {(float) i * drawFactor / numSamples *  screenWidth/ 2,
+                               screenHeight / 2 - waveData[i * drawFactor] * 50};
     }
-
-// Draw the polyline
     DrawLineStrip(points, newNumSamples, DARKGRAY);
-
     free(points); // Don't forget to free the allocated memory
-
 }

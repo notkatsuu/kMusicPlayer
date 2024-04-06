@@ -24,13 +24,12 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
 endif()
 
 # Our Project
-
-add_executable(${PROJECT_NAME} main.c)
+add_executable(${PROJECT_NAME} main.c include/tinyfiledialogs.c) # Add tinyfiledialogs.c to the compiled files
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCES_PATH="${CMAKE_SOURCE_DIR}/resources/")
 #set(raylib_VERBOSE 1)
 target_link_libraries(${PROJECT_NAME} raylib)
-#link raygui, in /include/raylib.h
+
 
 
 
