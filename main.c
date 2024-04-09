@@ -6,10 +6,14 @@
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
-
 #include <pthread.h>
+#include <semaphore.h>
+
+#define MAX_LOADING_THREADS 4
 
 void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate);
+void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waves, int waveCount);
+void *loadFile(void *data);
 
 const int screenWidth = 800;
 const int screenHeight = 450;
@@ -17,7 +21,15 @@ const int screenHeight = 450;
 Wave *waves;
 Music *tracks;
 FilePathList files;
-int waveCount = 0; // Keep track of the number of waves loaded
+
+sem_t sem_fileLoader;
+
+int waveCount = 0;
+
+typedef struct {
+  char *path;
+  int index;
+} ThreadData;
 
 char **filteredFiles;
 
@@ -32,7 +44,7 @@ int main(void) {
   GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(BLACK));
 
   SetTargetFPS(144); // Set our game to run at 60 frames-per-second
-
+  sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS);
   Vector2 mousePosition = {0};
   Vector2 panOffset = mousePosition;
 
@@ -53,51 +65,42 @@ int main(void) {
 
   files = LoadDirectoryFiles(directoryPath);
 
-  waves = NULL;
-  tracks = NULL;
-  filteredFiles = NULL;
-
+  waveCount = 0;
   for (int i = 0; i < files.count; i++) {
-    printf("Loading file %s\n", files.paths[i]);
     if (IsFileExtension(files.paths[i], ".mp3") ||
         IsFileExtension(files.paths[i], ".wav")) {
-
-      Wave candidateWave = LoadWave(files.paths[i]);
-
-      if (candidateWave.data == NULL || candidateWave.sampleRate == 0 ||
-          candidateWave.sampleSize == 0 || candidateWave.channels == 0 ||
-          candidateWave.frameCount == 0) {
-        // send popup msg using tinyfd
-        tinyfd_messageBox("Error", "Error loading file on Wave", "ok", "error",
-                          1);
-
-        continue;
-      }
-
       waveCount++;
-      filteredFiles = realloc(filteredFiles, (waveCount) * sizeof(char *));
-      waves = realloc(waves, (waveCount) * sizeof(Wave));
-      tracks = realloc(tracks, (waveCount) * sizeof(Music));
-
-      waves[waveCount - 1] = LoadWave(files.paths[i]);
-      tracks[waveCount - 1] = LoadMusicStream(files.paths[i]);
-      filteredFiles[waveCount - 1] = files.paths[i];
-
-      UnloadWave(candidateWave);
     }
   }
 
+  filteredFiles = malloc(waveCount * sizeof(char *));
+  waves = malloc(waveCount * sizeof(Wave));
+  tracks = malloc(waveCount * sizeof(Music));
+
+  int index = 0;
+  pthread_t *threads = malloc(files.count * sizeof(pthread_t));
+  ThreadData *threadData = malloc(files.count * sizeof(ThreadData));
+
+  for (int i = 0; i < files.count; i++) {
+    threadData[i].path = files.paths[i];
+    threadData[i].index = i;
+    pthread_create(&threads[i], NULL, loadFile, &threadData[i]);
+  }
+
+  for (int i = 0; i < files.count; i++) {
+    pthread_join(threads[i], NULL);
+  }
+
+  free(threads);
+  free(threadData);
+
+  filteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
+  tracks = realloc(tracks, waveCount * sizeof(Music));
+  waves = realloc(waves, waveCount * sizeof(Wave));
+
   RenderTexture2D waveforms[waveCount];
 
-  for (int i = 0; i < waveCount; i++) {
-
-    waveforms[i] =
-        LoadRenderTexture(waves[i].frameCount / waves[i].sampleRate * 100, 500);
-    BeginTextureMode(waveforms[i]);
-    ClearBackground(BLACK);
-    DrawSong(waves[i].data, waves[i].frameCount, 100, waves[i].sampleRate);
-    EndTextureMode();
-  }
+  loadAllWaveforms(waveforms, waves, waveCount);
 
   int currentTrack = 0;
 
@@ -270,6 +273,7 @@ int main(void) {
   }
   UnloadRenderTexture(camTarget); // Unload render texture
   free(filteredFiles);            // Unload filtered files memory
+  sem_destroy(&sem_fileLoader);
 
   CloseAudioDevice(); // Close audio device (music streaming is automatically
                       // stopped)
@@ -284,14 +288,51 @@ void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate) {
   int newNumSamples = numSamples / drawFactor;
   Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
   for (int i = 0; i < newNumSamples; i++) {
-
     if (i * drawFactor >= numSamples) {
       break;
     }
-
     points[i] = (Vector2){(float)i * drawFactor / sampleRate * 100,
                           screenHeight / 2 - waveData[i * drawFactor] * 300};
   }
   DrawLineStrip(points, newNumSamples, DARKGRAY);
   free(points); // Don't forget to free the allocated memory
+}
+
+void *loadFile(void *arg) {
+  sem_wait(&sem_fileLoader);
+  ThreadData *data = (ThreadData *)arg;
+  char *path = data->path;
+  int index = data->index;
+
+  printf("Loading file %s\n", path);
+  if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav")) {
+
+    if (candidateWave.data == NULL || candidateWave.sampleRate == 0 ||
+        candidateWave.sampleSize == 0 || candidateWave.channels == 0 ||
+        candidateWave.frameCount == 0) {
+      printf("Corrupted file %s\n", path);
+      waveCount--;
+      UnloadWave(candidateWave);
+      sem_post(&sem_fileLoader);
+      return NULL;
+    }
+
+    waves[index] = LoadWave(path);
+    tracks[index] = LoadMusicStream(path);
+    filteredFiles[index] = path;
+
+    UnloadWave(candidateWave);
+  }
+  sem_post(&sem_fileLoader);
+  return NULL;
+}
+
+void loadAllWaveforms(RenderTexture2D* waveforms, Wave* waves, int waveCount) {
+  for (int i = 0; i < waveCount; i++) {
+    waveforms[i] = LoadRenderTexture(waves[i].frameCount / waves[i].sampleRate * 100, 500);
+    BeginTextureMode(waveforms[i]);
+    ClearBackground(BLACK);
+    DrawSong(waves[i].data, waves[i].frameCount, 100, waves[i].sampleRate);
+    EndTextureMode();
+  }
 }
