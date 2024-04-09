@@ -11,7 +11,6 @@
 
 void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate);
 
-
 const int screenWidth = 800;
 const int screenHeight = 450;
 
@@ -47,6 +46,7 @@ int main(void) {
 
   InitAudioDevice();     // Initialize audio device
   SetMasterVolume(1.0f); // Set volume for music (1.0 is max level
+  bool playing = true;
 
   char const *directoryPath =
       tinyfd_selectFolderDialog("Select a directory", NULL);
@@ -56,7 +56,6 @@ int main(void) {
   waves = NULL;
   tracks = NULL;
   filteredFiles = NULL;
-
 
   for (int i = 0; i < files.count; i++) {
     printf("Loading file %s\n", files.paths[i]);
@@ -87,8 +86,6 @@ int main(void) {
       UnloadWave(candidateWave);
     }
   }
-
-
 
   RenderTexture2D waveforms[waveCount];
 
@@ -129,7 +126,7 @@ int main(void) {
       !WindowShouldClose()) { // Update
                               // ----------------------------------------------------------------
 
-    if (IsMusicStreamPlaying(tracks[currentTrack])) {
+    if (playing) {
       elapsedTime += GetFrameTime();
       if (elapsedTime >= totalDuration) {
         StopMusicStream(tracks[currentTrack]);
@@ -182,6 +179,17 @@ int main(void) {
                       elapsedTime); // Seek to the new position
       PlayMusicStream(
           tracks[currentTrack]); // Start playing again from the new position
+    }
+
+    // pause
+    if (IsKeyPressed(KEY_SPACE)) {
+      if (playing) {
+        PauseMusicStream(tracks[currentTrack]);
+        playing = false;
+      } else {
+        ResumeMusicStream(tracks[currentTrack]);
+        playing = true;
+      }
     }
 
     // Update camera
@@ -287,4 +295,3 @@ void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate) {
   DrawLineStrip(points, newNumSamples, DARKGRAY);
   free(points); // Don't forget to free the allocated memory
 }
-
