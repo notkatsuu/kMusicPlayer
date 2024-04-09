@@ -306,6 +306,7 @@ void *loadFile(void *arg) {
 
   printf("Loading file %s\n", path);
   if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav")) {
+    Wave candidateWave = LoadWave(path);
 
     if (candidateWave.data == NULL || candidateWave.sampleRate == 0 ||
         candidateWave.sampleSize == 0 || candidateWave.channels == 0 ||
