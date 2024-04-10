@@ -11,9 +11,11 @@
 
 #define MAX_LOADING_THREADS 4
 
-void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate);
-void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waves, int waveCount);
-void *loadFile(void *data);
+void DrawSong(const float *waveData, int numSamples, int drawFactor,
+              int sampleRate);
+void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw,
+                      int count);
+void *loadFile(void *arg);
 
 const int screenWidth = 800;
 const int screenHeight = 450;
@@ -52,7 +54,7 @@ int main(void) {
   bool exitWindow = false;
 
   Vector2 windowPosition = {500, 200};
-  SetWindowPosition(windowPosition.x, windowPosition.y);
+  SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
 
   RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight);
 
@@ -77,7 +79,6 @@ int main(void) {
   waves = malloc(waveCount * sizeof(Wave));
   tracks = malloc(waveCount * sizeof(Music));
 
-  int index = 0;
   pthread_t *threads = malloc(files.count * sizeof(pthread_t));
   ThreadData *threadData = malloc(files.count * sizeof(ThreadData));
 
@@ -94,9 +95,32 @@ int main(void) {
   free(threads);
   free(threadData);
 
-  filteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
-  tracks = realloc(tracks, waveCount * sizeof(Music));
-  waves = realloc(waves, waveCount * sizeof(Wave));
+  char **tempFilteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
+  if (tempFilteredFiles == NULL) {
+    // handle error, e.g., by freeing filteredFiles and setting it to NULL
+    free(filteredFiles);
+    filteredFiles = NULL;
+  } else {
+    filteredFiles = tempFilteredFiles;
+  }
+
+  Music *tempTracks = realloc(tracks, waveCount * sizeof(Music));
+  if (tempTracks == NULL) {
+    // handle error, e.g., by freeing filteredFiles and setting it to NULL
+    free(tracks);
+    tracks = NULL;
+  } else {
+    tracks = tempTracks;
+  }
+
+  Wave *tempWaves = realloc(waves, waveCount * sizeof(Wave));
+  if (tempWaves == NULL) {
+    // handle error, e.g., by freeing filteredFiles and setting it to NULL
+    free(waves);
+    waves = NULL;
+  } else {
+    waves = tempWaves;
+  }
 
   RenderTexture2D waveforms[waveCount];
 
@@ -107,20 +131,21 @@ int main(void) {
   // Initialization
   float elapsedTime = 0.0f;
   // Get total duration of the wave
-  float totalDuration =
-      (float)waves[currentTrack].frameCount / waves[currentTrack].sampleRate;
+  float totalDuration = (float)waves[currentTrack].frameCount /
+                        (float)waves[currentTrack].sampleRate;
 
   PlayMusicStream(tracks[currentTrack]); // Start music playing
 
   // Initialize camera
-  Camera2D camera = (Camera2D){{screenWidth / 2, screenHeight / 2},
-                               {screenWidth / 2, screenHeight / 2},
-                               0.0f,
-                               0.75f};
+  Camera2D camera =
+      (Camera2D){{(float)screenWidth / 2, (float)screenHeight / 2},
+                 {(float)screenWidth / 2, (float)screenHeight / 2},
+                 0.0f,
+                 0.75f};
 
   int drawFactor =
       1000; // Adjust this value to change the number of lines drawn
-  int numSamples = waves[currentTrack].frameCount;
+  unsigned int numSamples = waves[currentTrack].frameCount;
   Vector2 *points = malloc((numSamples / drawFactor) * sizeof(Vector2));
 
   // Main game loop
@@ -138,7 +163,7 @@ int main(void) {
         PlayMusicStream(tracks[currentTrack]);
         waves[currentTrack] = waves[currentTrack];
         totalDuration = (float)waves[currentTrack].frameCount /
-                        waves[currentTrack].sampleRate;
+                        (float)waves[currentTrack].sampleRate;
         elapsedTime = 0.0f;
       }
     }
@@ -154,7 +179,7 @@ int main(void) {
       PlayMusicStream(tracks[currentTrack]);
       waves[currentTrack] = waves[currentTrack];
       totalDuration = (float)waves[currentTrack].frameCount /
-                      waves[currentTrack].sampleRate;
+                      (float)waves[currentTrack].sampleRate;
       elapsedTime = 0.0f;
     }
 
@@ -197,14 +222,14 @@ int main(void) {
 
     // Update camera
     camera.target.x = elapsedTime / totalDuration *
-                      waves[currentTrack].frameCount /
-                      waves[currentTrack].sampleRate * 200;
-    camera.offset =
-        (Vector2){screenWidth / 2, screenHeight / 2}; // Center the camera
+                      (float)waves[currentTrack].frameCount /
+                      (float)waves[currentTrack].sampleRate * 200;
+    camera.offset = (Vector2){(float)screenWidth / 2,
+                              (float)screenHeight / 2}; // Center the camera
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) {
       if (CheckCollisionPointRec(mousePosition,
-                                 (Rectangle){0, 0, screenWidth, 20})) {
+                                 (Rectangle){0, 0, (float)screenWidth, 20})) {
         dragWindow = true;
         panOffset = mousePosition;
       }
@@ -230,8 +255,9 @@ int main(void) {
     ClearBackground(BLANK); // Clear the texture background
 
     DrawTextureRec(waveforms[currentTrack].texture,
-                   (Rectangle){0, 0, waveforms[currentTrack].texture.width,
-                               -waveforms[currentTrack].texture.height},
+                   (Rectangle){0, 0,
+                               (float)waveforms[currentTrack].texture.width,
+                               (float)-waveforms[currentTrack].texture.height},
                    (Vector2){0, 0}, WHITE);
 
     EndMode2D(); // End 2D mode
@@ -261,16 +287,16 @@ int main(void) {
 
   // De-Initialization
   //--------------------------------------------------------------------------------------
-  StopMusicStream(tracks[currentTrack]); // Stop music stream
-  free(points);                          // Unload points memory
-  free(waves);                           // Unload waves memory
-  free(tracks);                          // Unload sounds memory
-  UnloadDirectoryFiles(files);
+  StopMusicStream(tracks[currentTrack]);   // Stop music stream
+  UnloadMusicStream(tracks[currentTrack]); // Unload music stream
   for (int i = 0; i < waveCount; i++) {
+    UnloadWave(waves[i]); // Unload wave data
     UnloadRenderTexture(waveforms[i]);
-    UnloadWave(waves[i]);
-    UnloadMusicStream(tracks[i]);
   }
+  free(points); // Unload points memory
+  free(waves);  // Unload waves memory
+  free(tracks); // Unload sounds memory
+  UnloadDirectoryFiles(files);
   UnloadRenderTexture(camTarget); // Unload render texture
   free(filteredFiles);            // Unload filtered files memory
   sem_destroy(&sem_fileLoader);
@@ -283,7 +309,8 @@ int main(void) {
   return 0;
 }
 
-void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate) {
+void DrawSong(const float *waveData, int numSamples, int drawFactor,
+              int sampleRate) {
 
   int newNumSamples = numSamples / drawFactor;
   Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
@@ -291,8 +318,9 @@ void DrawSong(float *waveData, int numSamples, int drawFactor, int sampleRate) {
     if (i * drawFactor >= numSamples) {
       break;
     }
-    points[i] = (Vector2){(float)i * drawFactor / sampleRate * 100,
-                          screenHeight / 2 - waveData[i * drawFactor] * 300};
+    points[i] =
+        (Vector2){(float)i * (float)drawFactor / (float)sampleRate * 100,
+                  (float)screenHeight / 2 - waveData[i * drawFactor] * 300};
   }
   DrawLineStrip(points, newNumSamples, DARKGRAY);
   free(points); // Don't forget to free the allocated memory
@@ -315,7 +343,7 @@ void *loadFile(void *arg) {
       waveCount--;
       UnloadWave(candidateWave);
       sem_post(&sem_fileLoader);
-      return NULL;
+      return (void*)-1; // return -1 for failure
     }
 
     waves[index] = LoadWave(path);
@@ -325,15 +353,18 @@ void *loadFile(void *arg) {
     UnloadWave(candidateWave);
   }
   sem_post(&sem_fileLoader);
-  return NULL;
+  return (void*)0; // return 0 for success
 }
 
-void loadAllWaveforms(RenderTexture2D* waveforms, Wave* waves, int waveCount) {
-  for (int i = 0; i < waveCount; i++) {
-    waveforms[i] = LoadRenderTexture(waves[i].frameCount / waves[i].sampleRate * 100, 500);
+void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw,
+                      int count) {
+  for (int i = 0; i < count; i++) {
+    waveforms[i] = LoadRenderTexture(
+        (int)(waveToDraw[i].frameCount / waveToDraw[i].sampleRate * 100), 500);
     BeginTextureMode(waveforms[i]);
     ClearBackground(BLACK);
-    DrawSong(waves[i].data, waves[i].frameCount, 100, waves[i].sampleRate);
+    DrawSong(waveToDraw[i].data, (int)waveToDraw[i].frameCount, 100,
+             (int)waveToDraw[i].sampleRate);
     EndTextureMode();
   }
 }
