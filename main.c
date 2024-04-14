@@ -143,7 +143,7 @@ int main(void) {
     // Update camera
     camera.target.x = elapsedTime / totalDuration *
                       (float)waves[currentTrack].frameCount /
-                      (float)waves[currentTrack].sampleRate * 200;
+                      (float)waves[currentTrack].sampleRate * 100;
     camera.offset = (Vector2){(float)screenWidth / 2,
                               (float)screenHeight / 2}; // Center the camera
 
@@ -222,13 +222,12 @@ int main(void) {
 void DrawSong(const float *waveData, int numSamples, int drawFactor,
               int sampleRate) {
 
-  int newNumSamples = (numSamples / drawFactor);
+  int newNumSamples = numSamples / drawFactor * 2;
   Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
   for (int i = 0; i < newNumSamples; i++) {
-    
-    points[i] =
-        (Vector2){(float)i * (float)drawFactor / (float)sampleRate * 100,
-                  (float)screenHeight / 2 - waveData[i * drawFactor] * 300};
+    // Calculate the position of the point
+    points[i] = (Vector2) {(float) i * drawFactor / sampleRate / 2 * 100,
+                          screenHeight / 2 - waveData[i * drawFactor] * 300};
   }
   DrawLineStrip(points, newNumSamples, DARKGRAY);
   free(points); // Don't forget to free the allocated memory
@@ -276,18 +275,13 @@ void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count) {
   int drawFactor = 100;
   for (int i = 0; i < count; i++) {
     waveforms[i] = LoadRenderTexture(
-        (int)(waveToDraw[i].frameCount / waveToDraw[i].sampleRate) * 150, 500);
+        (int)(waveToDraw[i].frameCount / waveToDraw[i].sampleRate) * 100, 500);
     BeginTextureMode(waveforms[i]);
     ClearBackground(BLACK);
     DrawSong(waveToDraw[i].data, (int)waveToDraw[i].frameCount, 100,
              (int)waveToDraw[i].sampleRate);
     EndTextureMode();
 
-    //export the waveform texture to a file
-        char *filename = malloc(strlen(filteredFiles[i]) + 5);
-        strcpy(filename, filteredFiles[i]);
-        strcat(filename, ".png");
-        ExportImage(LoadImageFromTexture(waveforms[i].texture), filename);
   }
 }
 
