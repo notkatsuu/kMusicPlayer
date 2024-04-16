@@ -27,5 +27,5 @@ Contributions are welcome. Please open an issue to discuss your idea or submit a
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
-This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+This project is licensed under the [MIT](https://choosealicense.com/licenses/mit/) License. See the `LICENSE` file for details.
