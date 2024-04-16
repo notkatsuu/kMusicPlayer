@@ -20,9 +20,6 @@ The project uses CMake for building and installation. To install the project, fo
 4. Run `make`
 5. Run `make install`
 
-## Usage
-
-After installation, you can run the music player with the command `./music_player`.
 
 ## Contributing
 
@@ -30,4 +27,5 @@ Contributions are welcome. Please open an issue to discuss your idea or submit a
 
 ## License
 
+[MIT](https://choosealicense.com/licenses/mit/)
 This project is licensed under the MIT License. See the `LICENSE` file for details.
