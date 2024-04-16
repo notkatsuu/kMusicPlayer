@@ -21,7 +21,7 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
 void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count);
 void *loadMusic(void *arg);
 void playNextTrack(int *currentTrack);
-void seekInMusicStream(int *currentTrack, float seconds);
+void seekInMusicStream(const int *currentTrack, float seconds);
 
 const int screenWidth = 800;
 const int screenHeight = 450;
@@ -31,7 +31,6 @@ Music *tracks;
 FilePathList files;
 char const *directoryPath;
 
-pthread_mutex_t waveCountMutex = PTHREAD_MUTEX_INITIALIZER;
 sem_t sem_fileLoader;
 
 int waveCount = 0;
@@ -118,6 +117,11 @@ int main(void) {
                       (float)waves[currentTrack].sampleRate;
       elapsedTime = 0.0f;
     }
+
+    //if press esc close window
+        if (IsKeyPressed(KEY_ESCAPE)) {
+          exitWindow = true;
+        }
 
     // advance 5 seconds when right arrow
     if (IsKeyPressed(KEY_RIGHT)) {
@@ -226,8 +230,8 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
   Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
   for (int i = 0; i < newNumSamples; i++) {
     // Calculate the position of the point
-    points[i] = (Vector2) {(float) i * drawFactor / sampleRate / 2 * 100,
-                          screenHeight / 2 - waveData[i * drawFactor] * 300};
+    points[i] = (Vector2) {(float) i * (float)drawFactor / (float)sampleRate / 2 * 100,
+                          (float)screenHeight / 2 - waveData[i * drawFactor] * 300};
   }
   DrawLineStrip(points, newNumSamples, DARKGRAY);
   free(points); // Don't forget to free the allocated memory
@@ -272,7 +276,6 @@ void *loadMusic(void *arg) {
 }
 
 void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count) {
-  int drawFactor = 100;
   for (int i = 0; i < count; i++) {
     waveforms[i] = LoadRenderTexture(
         (int)(waveToDraw[i].frameCount / waveToDraw[i].sampleRate) * 100, 500);
@@ -359,10 +362,10 @@ void playNextTrack(int *currentTrack) {
   waves[*currentTrack] = waves[*currentTrack];
 }
 
-void seekInMusicStream(int *currentTrack, float seconds) {
+void seekInMusicStream(const int *currentTrack, float seconds) {
   elapsedTime += seconds;
-  if (elapsedTime > waves[*currentTrack].frameCount / waves[*currentTrack].sampleRate) {
-    elapsedTime = waves[*currentTrack].frameCount / waves[*currentTrack].sampleRate;
+  if (elapsedTime > (float)waves[*currentTrack].frameCount / (float)waves[*currentTrack].sampleRate) {
+    elapsedTime = (float)waves[*currentTrack].frameCount / (float)waves[*currentTrack].sampleRate;
   } else if (elapsedTime < 0.0f) {
     elapsedTime = 0.0f;
   }
