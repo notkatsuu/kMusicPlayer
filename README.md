@@ -2,8 +2,11 @@
 
 kMusicPlayer is a powerful music player built with C and Raylib. It provides a sleek and intuitive interface for playing your favorite music tracks.
 
-![Main Interface](images/demo.gif "Main Interface of kMusicPlayer")
-<p align="center" style="font-size: 12px;"><i>kMusicPlayer Interface</i></p>
+<p align="center">
+  <img src="images/demo.gif" alt="Main Interface of kMusicPlayer" width="400">
+  <br>
+  <i style="font-size: 12px;">kMusicPlayer Interface</i>
+</p>
 
 ## Features
 
