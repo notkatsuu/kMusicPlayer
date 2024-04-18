@@ -91,6 +91,9 @@ int main(void) {
                  0.0f,
                  0.75f};
 
+  int textHeaderPosition = screenWidth;
+  int nextSongTextPosition = screenWidth;
+
   // Main game loop
   while (!exitWindow && !WindowShouldClose()) {
     if (playing) {
@@ -104,6 +107,7 @@ int main(void) {
         totalDuration = (float)waves[currentTrack].frameCount /
                         (float)waves[currentTrack].sampleRate;
         elapsedTime = 0.0f;
+        nextSongTextPosition = screenWidth;
       }
     }
 
@@ -118,10 +122,10 @@ int main(void) {
       elapsedTime = 0.0f;
     }
 
-    //if press esc close window
-        if (IsKeyPressed(KEY_ESCAPE)) {
-          exitWindow = true;
-        }
+    // if press esc close window
+    if (IsKeyPressed(KEY_ESCAPE)) {
+      exitWindow = true;
+    }
 
     // advance 5 seconds when right arrow
     if (IsKeyPressed(KEY_RIGHT)) {
@@ -130,7 +134,7 @@ int main(void) {
 
     // rewind 5 seconds when left arrow
     if (IsKeyPressed(KEY_LEFT)) {
-        seekInMusicStream(&currentTrack, -5.0f);
+      seekInMusicStream(&currentTrack, -5.0f);
     }
 
     // pause
@@ -150,6 +154,29 @@ int main(void) {
                       (float)waves[currentTrack].sampleRate * 100;
     camera.offset = (Vector2){(float)screenWidth / 2,
                               (float)screenHeight / 2}; // Center the camera
+
+    textHeaderPosition -= 1; // Adjust the value to change the speed
+    if (textHeaderPosition +
+            MeasureText(TextFormat("Playing: %s",
+                                   GetFileName(filteredFiles[currentTrack])),
+                        20) <
+        0) {
+      textHeaderPosition = screenWidth;
+    }
+
+    // only update nextSong it when it's less than 30s for the next song
+        if (totalDuration - elapsedTime < 30.0f) {
+          nextSongTextPosition -= 2; // Adjust the value to change the speed
+          if (nextSongTextPosition +
+                  MeasureText(TextFormat(
+                                  "Next: %s",
+                                  GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
+                                  20) <
+                  0) {
+                nextSongTextPosition = screenWidth;
+          }
+
+        }
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) {
       if (CheckCollisionPointRec(mousePosition,
@@ -189,14 +216,32 @@ int main(void) {
              WHITE); // Draw the bar from top to bottom of the screen
 
     DrawText(
-        TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])), 10,
-        10, 20, DARKGRAY);
-    DrawText(TextFormat("Duration: %.2f", totalDuration), 10, 30, 20, DARKGRAY);
-    DrawText(TextFormat("Time: %.2f", elapsedTime), 10, 50, 20, DARKGRAY);
-    DrawText(TextFormat("Zoom: %.2f", camera.zoom), 10, 70, 20, DARKGRAY);
+        TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
+        textHeaderPosition, 10, 20, DARKGRAY);
+
+    DrawText(TextFormat("Duration: %02d:%02d", (int)totalDuration / 60,
+                        (int)totalDuration % 60),
+             screenWidth -
+                 MeasureText(TextFormat("Duration: %02d:%02d",
+                                        (int)totalDuration / 60,
+                                        (int)totalDuration % 60),
+                             20) -
+                 10,
+             screenHeight - 50, 20, DARKGRAY);
+    DrawText(TextFormat("Time: %02d:%02d", (int)elapsedTime / 60,
+                        (int)elapsedTime % 60),
+             10, screenHeight - 50, 20, DARKGRAY);
     // Draw index x of total
-    DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 10, 90,
-             20, DARKGRAY);
+    DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 10,
+             screenHeight - 80, 20, DARKGRAY);
+    if (totalDuration - elapsedTime < 30.0f) {
+      DrawText(TextFormat(
+                   "Next: %s",
+                   GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
+               nextSongTextPosition, 30, 20, DARKGRAY);
+    }
+    DrawRectangle(0, screenHeight - 20,
+                  screenWidth * elapsedTime / totalDuration, 20, DARKGRAY);
 
     EndDrawing();
   }
@@ -230,12 +275,12 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
   Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
   for (int i = 0; i < newNumSamples; i++) {
     // Calculate the position of the point
-    points[i] = (Vector2) {(float) i * (float)drawFactor / (float)sampleRate / 2 * 100,
-                          (float)screenHeight / 2 - waveData[i * drawFactor] * 300};
+    points[i] =
+        (Vector2){(float)i * (float)drawFactor / (float)sampleRate / 2 * 100,
+                  (float)screenHeight / 2 - waveData[i * drawFactor] * 300};
   }
   DrawLineStrip(points, newNumSamples, DARKGRAY);
   free(points); // Don't forget to free the allocated memory
-
 }
 
 void setGuiStyles() {
@@ -284,7 +329,6 @@ void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count) {
     DrawSong(waveToDraw[i].data, (int)waveToDraw[i].frameCount, 100,
              (int)waveToDraw[i].sampleRate);
     EndTextureMode();
-
   }
 }
 
@@ -364,14 +408,14 @@ void playNextTrack(int *currentTrack) {
 
 void seekInMusicStream(const int *currentTrack, float seconds) {
   elapsedTime += seconds;
-  if (elapsedTime > (float)waves[*currentTrack].frameCount / (float)waves[*currentTrack].sampleRate) {
-    elapsedTime = (float)waves[*currentTrack].frameCount / (float)waves[*currentTrack].sampleRate;
+  if (elapsedTime > (float)waves[*currentTrack].frameCount /
+                        (float)waves[*currentTrack].sampleRate) {
+    elapsedTime = (float)waves[*currentTrack].frameCount /
+                  (float)waves[*currentTrack].sampleRate;
   } else if (elapsedTime < 0.0f) {
     elapsedTime = 0.0f;
   }
-  StopMusicStream(tracks[*currentTrack]); // Stop the current music stream
+
   SeekMusicStream(tracks[*currentTrack],
                   elapsedTime); // Seek to the new position
-  PlayMusicStream(
-      tracks[*currentTrack]); // Start playing again from the new position
 }
