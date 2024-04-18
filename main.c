@@ -332,6 +332,10 @@ void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count) {
              (int)waveToDraw[i].sampleRate);
     EndTextureMode();
   }
+
+  //export first waveform to png
+        ExportImage(LoadImageFromTexture(waveforms[0].texture), "waveform.png");
+
 }
 
 void loadFiles() {
