@@ -28,7 +28,20 @@ endif()
 add_executable(${PROJECT_NAME} main.c include/tinyfiledialogs.c) # Add tinyfiledialogs.c to the compiled files
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCES_PATH="${CMAKE_SOURCE_DIR}/resources/")
-#set(raylib_VERBOSE 1)
+
+# Link the static version of pthread
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+if(THREADS_HAVE_PTHREAD_ARG)
+    target_compile_options(PUBLIC ${PROJECT_NAME} "-pthread")
+endif()
+if(CMAKE_THREAD_LIBS_INIT)
+    target_link_libraries(${PROJECT_NAME} "${CMAKE_THREAD_LIBS_INIT}")
+endif()
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -static")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static")
+
 target_link_libraries(${PROJECT_NAME} raylib)
 
 
