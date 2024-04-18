@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.6) # FetchContent is available in 3.11+
-project(kAudioVisualizer)
+project(kMusicPlayer)
 
 # Generate compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -19,6 +19,7 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
         set(FETCHCONTENT_QUIET NO)
         FetchContent_Populate(raylib)
         set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE) # don't build the supplied examples
+        set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE) # build raylib as a static library
         add_subdirectory(${raylib_SOURCE_DIR} ${raylib_BINARY_DIR})
     endif()
 endif()
