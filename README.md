@@ -3,7 +3,7 @@
 kMusicPlayer is a powerful music player built with C and Raylib. It provides a sleek and intuitive interface for playing your favorite music tracks.
 
 ![Main Interface](images/demo.gif)
-
+*<center>kMusicPlayer Main Interface</center>*
 ## Features
 
 - **Music Playback**: Play your favorite tracks with ease. Supports `.mp3` and `.wav` formats.
@@ -21,6 +21,7 @@ kMusicPlayer is a powerful music player built with C and Raylib. It provides a s
 3. **View Waveform**: The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
 
     ![View Waveform](images/waveform.png)
+<p align="center" style="font-size: 12px;"><i>Frank Sinatra's Come Fly With Me</i></p>
 
 ## Building from Source
 
