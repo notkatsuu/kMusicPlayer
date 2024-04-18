@@ -100,14 +100,16 @@ int main(void) {
       elapsedTime += GetFrameTime();
       if (elapsedTime >= totalDuration) {
         StopMusicStream(tracks[currentTrack]);
+        elapsedTime = 0.0f;
+        nextSongTextPosition = screenWidth;
         currentTrack = (currentTrack + 1) % waveCount;
         tracks[currentTrack] = tracks[currentTrack];
         PlayMusicStream(tracks[currentTrack]);
         waves[currentTrack] = waves[currentTrack];
         totalDuration = (float)waves[currentTrack].frameCount /
                         (float)waves[currentTrack].sampleRate;
-        elapsedTime = 0.0f;
-        nextSongTextPosition = screenWidth;
+
+        
       }
     }
 
