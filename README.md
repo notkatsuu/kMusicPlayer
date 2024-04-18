@@ -1,29 +1,39 @@
 # kMusicPlayer
 
-This project is a simple music player built with the Raylib library in C. It supports .mp3 and .wav file formats and allows users to control music playback with features like play, pause, next, rewind, and fast-forward. The application visualizes audio waveforms for each track and provides a user-friendly GUI. It uses multithreading for efficient music loading and the tinyfiledialogs library for directory selection.
+kMusicPlayer is a powerful music player built with C and Raylib. It provides a sleek and intuitive interface for playing your favorite music tracks.
+
+![Main Interface](cmake-build-debug/images/demo.gif)
 
 ## Features
 
-- Play, pause, next, rewind, and fast-forward controls
-- Visualizes audio waveforms for each track
-- Supports .mp3 and .wav file formats
-- Efficient music loading with multithreading
-- Directory selection with tinyfiledialogs library
+- **Music Playback**: Play your favorite tracks with ease. Supports `.mp3` and `.wav` formats.
+- **Waveform Visualization**: Visualize your music with real-time waveform rendering.
+- **Drag and Drop Interface**: Easily control your music playback with our intuitive interface.
+- **Threaded Music Loading**: Load your music in the background without interrupting your workflow.
 
-## Installation
+## How to Use
 
-The project uses CMake for building and installation. To install the project, follow these steps:
+1. **Load Music**: Use the file dialog to select your music directory. kMusicPlayer will automatically load all `.mp3` and `.wav` files in the directory.
 
-1. Clone the repository
-2. Navigate to the project directory
-3. Run `cmake .`
-4. Run `make`
-5. Run `make install`
+    ![Load Music](path_to_your_image)
 
+2. **Control Playback**: Use the playback controls to play, pause, and skip tracks. You can also seek through the current track by clicking on the waveform.
 
-## Contributing
+    ![Control Playback](path_to_your_image)
 
-Contributions are welcome. Please open an issue to discuss your idea or submit a pull request.
+3. **View Waveform**: The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
+
+    ![View Waveform](path_to_your_image)
+
+## Building from Source
+
+kMusicPlayer uses CMake for its build system. To build from source, follow these steps:
+
+1. Clone the repository: `git clone https://github.com/your_username/kMusicPlayer.git`
+2. Navigate to the project directory: `cd kMusicPlayer`
+3. Create a build directory and navigate to it: `mkdir build && cd build`
+4. Run CMake to generate the build files: `cmake ..`
+5. Build the project: `cmake --build .`
 
 ## License
 
