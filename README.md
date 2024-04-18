@@ -20,7 +20,11 @@ kMusicPlayer is a powerful music player built with C and Raylib. It provides a s
 
 3. **View Waveform**: The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
 
-    ![View Waveform](images/waveform.png "Waveform: 'Come Fly With Me' by Frank Sinatra")
+    <figure>
+  <img src="images/waveform.png" alt="View Waveform">
+  <figcaption style="text-align:center;">Waveform: 'Come Fly With Me' by Frank Sinatra</figcaption>
+</figure>
+
 
 
 ## Building from Source
