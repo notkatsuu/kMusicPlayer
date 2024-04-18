@@ -2,20 +2,17 @@
 
 kMusicPlayer is a powerful music player built with C and Raylib. It provides a sleek and intuitive interface for playing your favorite music tracks.
 
-![Main Interface](cmake-build-debug/images/demo.gif)
+![Main Interface](images/demo.gif)
 
 ## Features
 
 - **Music Playback**: Play your favorite tracks with ease. Supports `.mp3` and `.wav` formats.
-- **Waveform Visualization**: Visualize your music with real-time waveform rendering.
-- **Drag and Drop Interface**: Easily control your music playback with our intuitive interface.
+- **Waveform Visualization**: Visualize your music with waveform rendering.
 - **Threaded Music Loading**: Load your music in the background without interrupting your workflow.
 
 ## How to Use
 
 1. **Load Music**: Use the file dialog to select your music directory. kMusicPlayer will automatically load all `.mp3` and `.wav` files in the directory.
-
-    ![Load Music](path_to_your_image)
 
 2. **Control Playback**: Use the playback controls to play, pause, and skip tracks. You can also seek through the current track by clicking on the waveform.
 
@@ -23,7 +20,7 @@ kMusicPlayer is a powerful music player built with C and Raylib. It provides a s
 
 3. **View Waveform**: The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
 
-    ![View Waveform](path_to_your_image)
+    ![View Waveform](images/waveform.png)
 
 ## Building from Source
 
