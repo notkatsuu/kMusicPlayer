@@ -3,6 +3,7 @@
 kMusicPlayer is a powerful music player built with C and Raylib. It provides a sleek and intuitive interface for playing your favorite music tracks.
 
 ![Main Interface](images/demo.gif "Main Interface of kMusicPlayer")
+<p align="center" style="font-size: 12px;"><i>kMusicPlayer Interface</i></p>
 
 ## Features
 
@@ -12,16 +13,16 @@ kMusicPlayer is a powerful music player built with C and Raylib. It provides a s
 
 ## How to Use
 
-1. **Load Music**: Use the file dialog to select your music directory. kMusicPlayer will automatically load all `.mp3` and `.wav` files in the directory.
+### 1. **Load Music**: 
+Use the file dialog to select your music directory. kMusicPlayer will automatically load all `.mp3` and `.wav` files in the directory.
 
-2. **Control Playback**: Use the playback controls to play, pause, and skip tracks. You can also seek through the current track by clicking on the waveform.
+### 2. **Control Playback**: 
+Use the playback controls to play, pause, and skip tracks. You can also seek through the current track by clicking on the waveform.
 
-    ![Control Playback](path_to_your_image)
-
-3. **View Waveform**: The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
-
-    <img src="images/waveform.png" alt="View Waveform">
-<p style="text-align:center; font-size: smaller;">Waveform: 'Come Fly With Me' by Frank Sinatra</p>
+### 3. **View Waveform**: 
+The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
+![Waveform Visualization](images/waveform.png "Waveform Visualization")
+<p align="center" style="font-size: 12px;"><i>Frank Sinatra's Come Fly With Me</i></p>
 
 
 
