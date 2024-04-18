@@ -6,8 +6,8 @@
 
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
-#include <pthread.h>
-#include <semaphore.h>
+#include "pthread.h"
+#include "semaphore.h"
 
 #define MAX_LOADING_THREADS 4
 
