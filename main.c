@@ -109,7 +109,7 @@ int main(void) {
         totalDuration = (float)waves[currentTrack].frameCount /
                         (float)waves[currentTrack].sampleRate;
 
-        
+
       }
     }
 
