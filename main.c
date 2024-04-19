@@ -5,8 +5,8 @@
 #include <stdio.h>
 
 #define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
 #include "pthread.h"
+#include "raygui.h"
 #include "semaphore.h"
 
 #define MAX_LOADING_THREADS 4
@@ -35,6 +35,7 @@ sem_t sem_fileLoader;
 
 int waveCount = 0;
 float elapsedTime = 0.0f;
+float musicVolume = 1.0f;
 
 typedef struct {
   char *path;
@@ -63,8 +64,8 @@ int main(void) {
 
   RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight);
 
-  InitAudioDevice();     // Initialize audio device
-  SetMasterVolume(1.0f); // Set volume for music (1.0 is max level
+  InitAudioDevice();            // Initialize audio device
+  SetMasterVolume(musicVolume); // Set volume for music (1.0 is max level
   bool playing = true;
 
   loadFiles();
@@ -108,8 +109,6 @@ int main(void) {
         waves[currentTrack] = waves[currentTrack];
         totalDuration = (float)waves[currentTrack].frameCount /
                         (float)waves[currentTrack].sampleRate;
-
-
       }
     }
 
@@ -150,6 +149,16 @@ int main(void) {
       }
     }
 
+    if (IsKeyPressed(KEY_UP)) {
+      musicVolume += 0.1f;
+      SetMasterVolume(musicVolume);
+    }
+
+    if (IsKeyPressed(KEY_DOWN)) {
+      musicVolume -= 0.1f;
+      SetMasterVolume(musicVolume);
+    }
+
     // Update camera
     camera.target.x = elapsedTime / totalDuration *
                       (float)waves[currentTrack].frameCount /
@@ -167,18 +176,19 @@ int main(void) {
     }
 
     // only update nextSong it when it's less than 30s for the next song
-        if (totalDuration - elapsedTime < 30.0f) {
-          nextSongTextPosition -= 2; // Adjust the value to change the speed
-          if (nextSongTextPosition +
-                  MeasureText(TextFormat(
-                                  "Next: %s",
-                                  GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
-                                  20) <
-                  0) {
-                nextSongTextPosition = screenWidth;
-          }
-
-        }
+    if (totalDuration - elapsedTime < 30.0f) {
+      nextSongTextPosition -= 2; // Adjust the value to change the speed
+      if (nextSongTextPosition +
+              MeasureText(
+                  TextFormat(
+                      "Next: %s",
+                      GetFileName(
+                          filteredFiles[(currentTrack + 1) % waveCount])),
+                  20) <
+          0) {
+        nextSongTextPosition = screenWidth;
+      }
+    }
 
     if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) {
       if (CheckCollisionPointRec(mousePosition,
@@ -245,6 +255,8 @@ int main(void) {
     DrawRectangle(0, screenHeight - 20,
                   screenWidth * elapsedTime / totalDuration, 20, DARKGRAY);
 
+    DrawText(TextFormat("Volume: %.1f", musicVolume), screenWidth - 120, screenHeight-70, 20,
+             DARKGRAY);
     EndDrawing();
   }
 
@@ -333,9 +345,8 @@ void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count) {
     EndTextureMode();
   }
 
-  //export first waveform to png
-        ExportImage(LoadImageFromTexture(waveforms[0].texture), "waveform.png");
-
+  // export first waveform to png
+  ExportImage(LoadImageFromTexture(waveforms[0].texture), "waveform.png");
 }
 
 void loadFiles() {
