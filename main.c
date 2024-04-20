@@ -423,7 +423,7 @@ void playNextTrack(int *currentTrack) {
   waves[*currentTrack] = waves[*currentTrack];
 }
 
-void seekInMusicStream(const int *currentTrack, float seconds) { 
+void seekInMusicStream(const int *currentTrack, float seconds) {
   elapsedTime += seconds;
   if (elapsedTime > (float)waves[*currentTrack].frameCount /
                         (float)waves[*currentTrack].sampleRate) {
