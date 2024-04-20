@@ -23,6 +23,11 @@ The target of this project is developing a software to be able to enjoy music al
 ### 2. **Control Playback**: 
 #### Use the playback controls to play, pause, and skip tracks. You can also seek through the current track by clicking on the waveform.
 
+### Press Space to pause/play the music.
+### Press Right/Left Arrow to seek 5s forward/backward.
+### Press P to play the next track.
+### Press Up/Down Arrow to increase/decrease the volume.
+
 ### 3. **View Waveform**: 
 #### The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
 ![Waveform Visualization](images/waveform.png "Waveform Visualization")
