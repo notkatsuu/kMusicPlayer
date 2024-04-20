@@ -1,6 +1,7 @@
 # kMusicPlayer
 
-kMusicPlayer is a powerful music player built with C and Raylib. It provides a sleek and intuitive interface for playing your favorite music tracks.
+kMusicPlayer is a visual music player built with C and Raylib. It provides a simple visual interface for playing your favorite music tracks.
+The target of this project is developing a software to be able to enjoy music also in a visual way.w
 
 <p align="center">
   <img src="images/demo.gif" alt="Main Interface of kMusicPlayer" width="400">
@@ -26,9 +27,6 @@ kMusicPlayer is a powerful music player built with C and Raylib. It provides a s
 #### The waveform of the current track is displayed in the main window. It updates in real-time as the track plays.
 ![Waveform Visualization](images/waveform.png "Waveform Visualization")
 <p align="center" style="font-size: 12px;"><i>Frank Sinatra's Come Fly With Me</i></p>
-
-
-
 
 
 ## Building from Source
