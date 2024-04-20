@@ -68,13 +68,15 @@ int main(void) {
   SetMasterVolume(musicVolume); // Set volume for music (1.0 is max level
   bool playing = true;
 
+  // Loading files functions-----------------
   loadFiles();
   countAudioFiles();
   loadAllMusic();
   refreshDataAllocation();
+  //-----------------------------------------
 
+  //load waveforms
   RenderTexture2D *waveforms = malloc(waveCount * sizeof(RenderTexture2D));
-
   loadAllWaveforms(waveforms, waves, waveCount);
 
   int currentTrack = 0;
@@ -92,14 +94,14 @@ int main(void) {
                  0.0f,
                  0.75f};
 
-  int textHeaderPosition = screenWidth;
-  int nextSongTextPosition = screenWidth;
+  int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
+  int nextSongTextPosition = screenWidth; //Starting position for the next song text
 
   // Main game loop
   while (!exitWindow && !WindowShouldClose()) {
     if (playing) {
       elapsedTime += GetFrameTime();
-      if (elapsedTime >= totalDuration) {
+      if (elapsedTime >= totalDuration) { // If the song ends, play the next one
         StopMusicStream(tracks[currentTrack]);
         elapsedTime = 0.0f;
         nextSongTextPosition = screenWidth;
@@ -114,9 +116,9 @@ int main(void) {
 
     mousePosition = GetMousePosition();
     UpdateMusicStream(
-        tracks[currentTrack]); // Update music buffer with new stream data
+        tracks[currentTrack]); // Update music stream with new track
 
-    if (IsKeyPressed(KEY_P)) {
+    if (IsKeyPressed(KEY_P)) { // Play next track
       playNextTrack(&currentTrack);
       totalDuration = (float)waves[currentTrack].frameCount /
                       (float)waves[currentTrack].sampleRate;
@@ -159,7 +161,7 @@ int main(void) {
       SetMasterVolume(musicVolume);
     }
 
-    // Update camera
+    // Update camera target position
     camera.target.x = elapsedTime / totalDuration *
                       (float)waves[currentTrack].frameCount /
                       (float)waves[currentTrack].sampleRate * 100;
@@ -190,7 +192,7 @@ int main(void) {
       }
     }
 
-    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) {
+    if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) { // Start dragging the window
       if (CheckCollisionPointRec(mousePosition,
                                  (Rectangle){0, 0, (float)screenWidth, 20})) {
         dragWindow = true;
@@ -198,7 +200,7 @@ int main(void) {
       }
     }
 
-    if (dragWindow) {
+    if (dragWindow) { // While dragging the window
       windowPosition.x += mousePosition.x - panOffset.x;
       windowPosition.y += mousePosition.y - panOffset.y;
       SetWindowPosition((int)windowPosition.x, (int)windowPosition.y);
@@ -218,7 +220,7 @@ int main(void) {
                    (Rectangle){0, 0,
                                (float)waveforms[currentTrack].texture.width,
                                (float)-waveforms[currentTrack].texture.height},
-                   (Vector2){0, 0}, WHITE);
+                   (Vector2){0, 0}, WHITE); // Draw the texture into the camera
 
     EndMode2D(); // End 2D mode
 
@@ -229,7 +231,7 @@ int main(void) {
 
     DrawText(
         TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
-        textHeaderPosition, 10, 20, DARKGRAY);
+        textHeaderPosition, 10, 20, DARKGRAY); // Draw the title of the song
 
     DrawText(TextFormat("Duration: %02d:%02d", (int)totalDuration / 60,
                         (int)totalDuration % 60),
@@ -239,27 +241,24 @@ int main(void) {
                                         (int)totalDuration % 60),
                              20) -
                  10,
-             screenHeight - 50, 20, DARKGRAY);
+             screenHeight - 50, 20, DARKGRAY); // Draw the duration of the song
     DrawText(TextFormat("Time: %02d:%02d", (int)elapsedTime / 60,
                         (int)elapsedTime % 60),
-             10, screenHeight - 50, 20, DARKGRAY);
+             10, screenHeight - 50, 20, DARKGRAY); // Draw the current time of the song
     // Draw index x of total
     DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 10,
-             screenHeight - 80, 20, DARKGRAY);
+             screenHeight - 80, 20, DARKGRAY); // Draw the current track index
     if (totalDuration - elapsedTime < 30.0f) {
       DrawText(TextFormat(
                    "Next: %s",
                    GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
-               nextSongTextPosition, 30, 20, DARKGRAY);
+               nextSongTextPosition, 30, 20, DARKGRAY); // Draw the next song text header
     }
     DrawRectangle(0, screenHeight - 20,
-                  screenWidth * elapsedTime / totalDuration, 20, DARKGRAY);
-
-
-    //Show volume in percentage
+                  screenWidth * elapsedTime / totalDuration, 20, DARKGRAY); // Draw the progress bar
 
     DrawText(TextFormat("Volume: %02d%%", (int)(musicVolume * 100)), 10,
-             screenHeight - 110, 20, DARKGRAY);
+             screenHeight - 110, 20, DARKGRAY); // Draw the volume percentage
     EndDrawing();
   }
 
@@ -307,7 +306,7 @@ void setGuiStyles() {
   GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(BLACK));
 }
 
-void *loadMusic(void *arg) {
+void *loadMusic(void *arg) { // Thread function to load music
   sem_wait(&sem_fileLoader);
   ThreadData *data = (ThreadData *)arg;
   char *path = data->path;
@@ -348,8 +347,6 @@ void loadAllWaveforms(RenderTexture2D *waveforms, Wave *waveToDraw, int count) {
     EndTextureMode();
   }
 
-  // export first waveform to png
-  ExportImage(LoadImageFromTexture(waveforms[0].texture), "waveform.png");
 }
 
 void loadFiles() {
@@ -367,7 +364,7 @@ void countAudioFiles() {
   }
 }
 
-void loadAllMusic() {
+void loadAllMusic() { //calls the loadMusic function for each file
   filteredFiles = malloc(waveCount * sizeof(char *));
   waves = malloc(waveCount * sizeof(Wave));
   tracks = malloc(waveCount * sizeof(Music));
@@ -389,7 +386,7 @@ void loadAllMusic() {
   free(threadData);
 }
 
-void refreshDataAllocation() {
+void refreshDataAllocation() { //reallocates memory for the dinamic arrays
   char **tempFilteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
   if (tempFilteredFiles == NULL) {
     // handle error, e.g., by freeing filteredFiles and setting it to NULL
@@ -426,7 +423,7 @@ void playNextTrack(int *currentTrack) {
   waves[*currentTrack] = waves[*currentTrack];
 }
 
-void seekInMusicStream(const int *currentTrack, float seconds) {
+void seekInMusicStream(const int *currentTrack, float seconds) { 
   elapsedTime += seconds;
   if (elapsedTime > (float)waves[*currentTrack].frameCount /
                         (float)waves[*currentTrack].sampleRate) {
