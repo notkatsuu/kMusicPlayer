@@ -149,13 +149,13 @@ int main(void) {
       }
     }
 
-    if (IsKeyPressed(KEY_UP)) {
-      musicVolume += 0.1f;
+    if (IsKeyPressed(KEY_UP) && musicVolume < 1.0f) {
+      musicVolume += 0.05f;
       SetMasterVolume(musicVolume);
     }
 
-    if (IsKeyPressed(KEY_DOWN)) {
-      musicVolume -= 0.1f;
+    if (IsKeyPressed(KEY_DOWN) && musicVolume > 0.0f) {
+      musicVolume -= 0.05f;
       SetMasterVolume(musicVolume);
     }
 
@@ -255,8 +255,11 @@ int main(void) {
     DrawRectangle(0, screenHeight - 20,
                   screenWidth * elapsedTime / totalDuration, 20, DARKGRAY);
 
-    DrawText(TextFormat("Volume: %.1f", musicVolume), screenWidth - 120, screenHeight-70, 20,
-             DARKGRAY);
+
+    //Show volume in percentage
+
+    DrawText(TextFormat("Volume: %02d%%", (int)(musicVolume * 100)), 10,
+             screenHeight - 110, 20, DARKGRAY);
     EndDrawing();
   }
 
