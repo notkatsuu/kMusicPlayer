@@ -349,6 +349,10 @@ void *loadMusic(void *arg) { // Thread function to load music
         tracks[index] = LoadMusicStream(path);
         filteredFiles[index] = path;
 
+        printf("\n\nLoaded file %s\n", path);
+        printf("Wave frame count: %i\n", (int) waves[index].frameCount);
+        printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
+
         UnloadWave(candidateWave);
     }
     sem_post(&sem_fileLoader);
@@ -357,19 +361,23 @@ void *loadMusic(void *arg) { // Thread function to load music
 
 void loadAllWaveforms() {
     for (int i = 0; i < waveCount; i++) {
-        //print wavefor x of total waveforms
-        printf("Loading waveform %d of %d\n", i+1, waveCount);
+        //print waveform x of total waveforms
+        printf("\n\nLoading waveform %d of %d\n", i+1, waveCount);
+        //printf("Load file %s\n", filteredFiles[i]); Gives exception on corrupt examples (Work in progress)
         printf("Wave frame count: %i\n", (int) waves[i].frameCount);
         printf("Wave sample rate: %i\n", (int) waves[i].sampleRate);
+
+
+        if (waves[i].sampleRate == 0 ||waves[i].frameCount == 0 || (waves[i].sampleRate != 44100 && waves[i].sampleRate != 48000)) {
+            printf("Corrupted file %s\n", filteredFiles[i]); //This should be implemented on the filter on loadFiles but haven't figured out why it doesn't really work...
+            continue;
+        }
+
         waveforms[i] = LoadRenderTexture(
-                (int) roundf((roundf(waves[i].frameCount) / waves[i].sampleRate) * 100), 500);
+                (int) roundf(((waves[i].frameCount) / waves[i].sampleRate) * 100), 500);
         //print texture size
         printf("Texture size: %d x %d\n", waveforms[i].texture.width, waveforms[i].texture.height);
 
-        if (waveforms[i].texture.width == 0 || waveforms[i].texture.height == 0) {
-            printf("Error loading waveform %d\n", i);
-            continue;
-        }
         BeginTextureMode(waveforms[i]);
         ClearBackground(BLACK);
         printf("Drawing DrawSong %d\n", i);
