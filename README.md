@@ -1,7 +1,7 @@
 # kMusicPlayer
 
 ### kMusicPlayer is a visual music player built with C and Raylib. It provides a simple visual interface for playing your favorite music tracks.
-### The target of this project is developing a software to be able to enjoy music also in a visual way.w
+### The target of this project is developing a software to be able to enjoy music also in a visual way.
 # 
 
 <p align="center">
