@@ -35,12 +35,13 @@ void seekInMusicStream(const int *currentTrack, float seconds);
 
 const int screenWidth = 800;
 const int screenHeight = 450;
-
-Wave *waves;
-Music *tracks;
-FilePathList files;
-RenderTexture2D *waveforms;
 char const *directoryPath;
+
+Wave *waves; //Array for storing wave data
+Music *tracks; //Array for storing music tracks
+FilePathList files; //Raw list of files in the directory
+RenderTexture2D *waveforms; //Array for storing waveforms' textures
+float *totalDurations; //Array for storing the total duration of each song
 
 sem_t sem_fileLoader;
 
@@ -63,38 +64,43 @@ int main(void) {
     setGuiStyles();
 
     SetTargetFPS(144); // Set our game to run at 60 frames-per-second
-    sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS);
+    sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS); //Set up semaphore for file loading
     Vector2 mousePosition = {0};
     Vector2 panOffset = mousePosition;
 
     bool dragWindow = false;
     bool exitWindow = false;
 
-    Vector2 windowPosition = {500, 200};
+    Vector2 windowPosition = {500, 200}; // Set window position on startup
     SetWindowPosition((int) windowPosition.x, (int) windowPosition.y);
 
-    RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight);
+    RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight); // Load a render texture to draw the camera target in it
 
-    InitAudioDevice();            // Initialize audio device
-    SetMasterVolume(musicVolume); // Set volume for music (1.0 is max level
+    InitAudioDevice();
+    SetMasterVolume(musicVolume);
     bool playing = true;
 
     // Loading files functions-----------------
-    loadFiles();
+    loadFiles(); // Load files from directory
     countAudioFiles();
-    loadAllMusic();
-    refreshDataAllocation();
+    loadAllMusic(); // Load all music from the files
+    refreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
     //-----------------------------------------
 
     //load waveforms
     printf("Loading waveforms\n");
-    loadAllWaveforms();
+    loadAllWaveforms(); // Load all waveforms of the music into array of render textures
 
-    int currentTrack = 0;
+    int currentTrack = 0; // To track the song that's playing
 
-    elapsedTime = 0.0f;
-    float totalDuration = (float) waves[currentTrack].frameCount /
-                          (float) waves[currentTrack].sampleRate;
+    elapsedTime = 0.0f; // To track the current time of the song
+
+    totalDurations = malloc(waveCount * sizeof(float));
+
+    for (int i = 0; i < waveCount; i++) {
+        totalDurations[i] = (float) waves[i].frameCount /
+                            (float) waves[i].sampleRate;
+    }
 
     PlayMusicStream(tracks[currentTrack]); // Start music playing
 
@@ -111,17 +117,14 @@ int main(void) {
     // Main game loop
     while (!exitWindow && !WindowShouldClose()) {
         if (playing) {
-            elapsedTime += GetFrameTime();
-            if (elapsedTime >= totalDuration) { // If the song ends, play the next one
+            elapsedTime += GetFrameTime(); // Update the elapsed time
+            if (elapsedTime >= totalDurations[currentTrack]) { // If the song ends, play the next one, updating the duration, elapsed time, etc.
                 StopMusicStream(tracks[currentTrack]);
                 elapsedTime = 0.0f;
                 nextSongTextPosition = screenWidth;
                 currentTrack = (currentTrack + 1) % waveCount;
-                tracks[currentTrack] = tracks[currentTrack];
                 PlayMusicStream(tracks[currentTrack]);
-                waves[currentTrack] = waves[currentTrack];
-                totalDuration = (float) waves[currentTrack].frameCount /
-                                (float) waves[currentTrack].sampleRate;
+
             }
         }
 
@@ -131,8 +134,6 @@ int main(void) {
 
         if (IsKeyPressed(KEY_P)) { // Play next track
             playNextTrack(&currentTrack);
-            totalDuration = (float) waves[currentTrack].frameCount /
-                            (float) waves[currentTrack].sampleRate;
             elapsedTime = 0.0f;
         }
 
@@ -175,9 +176,7 @@ int main(void) {
         }
 
         // Update camera target position
-        camera.target.x = elapsedTime / totalDuration *
-                          (float) waves[currentTrack].frameCount /
-                          (float) waves[currentTrack].sampleRate * 100;
+        camera.target.x = elapsedTime * 100;
         camera.offset = (Vector2) {(float) screenWidth / 2,
                                    (float) screenHeight / 2}; // Center the camera
 
@@ -192,7 +191,7 @@ int main(void) {
         }
 
         // only update nextSong it when it's less than 30s for the next song
-        if (totalDuration - elapsedTime < 30.0f) {
+        if (totalDurations[currentTrack] - elapsedTime < 30.0f) {
             nextSongTextPosition -= 2; // Adjust the value to change the speed
             if (nextSongTextPosition +
                 MeasureText(
@@ -222,11 +221,8 @@ int main(void) {
                 dragWindow = false;
         }
 
-        // Draw
-
         BeginDrawing();
         ClearBackground(RAYWHITE);
-
         BeginMode2D(camera);    // Begin 2D mode with camera
         ClearBackground(BLANK); // Clear the texture background
 
@@ -234,25 +230,26 @@ int main(void) {
                        (Rectangle) {0, 0,
                                     (float) waveforms[currentTrack].texture.width,
                                     (float) -waveforms[currentTrack].texture.height},
-                       (Vector2) {0, 0}, WHITE); // Draw the texture into the camera
+                       (Vector2) {0, 0}, WHITE);
+
 
         EndMode2D(); // End 2D mode
 
         BeginDrawing();
-
         DrawLine(screenWidth / 2, 25, screenWidth / 2, screenHeight,
                  WHITE); // Draw the bar from top to bottom of the screen
 
+        DrawRectangleGradientV(0, 0, screenWidth, (screenHeight/2)-20, BLACK, BLANK); // Draw the top bar
+        DrawRectangleGradientV(0, (screenHeight/2)+20, screenWidth, screenHeight/2, BLANK, BLACK); // Draw the bottom bar
         DrawText(
                 TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
                 textHeaderPosition, 10, 20, DARKGRAY); // Draw the title of the song
-
-        DrawText(TextFormat("Duration: %02d:%02d", (int) totalDuration / 60,
-                            (int) totalDuration % 60),
+        DrawText(TextFormat("Duration: %02d:%02d", (int) totalDurations[currentTrack] / 60,
+                            (int) totalDurations[currentTrack] % 60),
                  screenWidth -
                  MeasureText(TextFormat("Duration: %02d:%02d",
-                                        (int) totalDuration / 60,
-                                        (int) totalDuration % 60),
+                                        (int) totalDurations[currentTrack] / 60,
+                                        (int) totalDurations[currentTrack] % 60),
                              20) -
                  10,
                  screenHeight - 50, 20, DARKGRAY); // Draw the duration of the song
@@ -262,14 +259,14 @@ int main(void) {
         // Draw index x of total
         DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 10,
                  screenHeight - 80, 20, DARKGRAY); // Draw the current track index
-        if (totalDuration - elapsedTime < 30.0f) {
+        if (totalDurations[currentTrack] - elapsedTime < 30.0f) {
             DrawText(TextFormat(
                              "Next: %s",
                              GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
                      nextSongTextPosition, 30, 20, DARKGRAY); // Draw the next song text header
         }
         DrawRectangle(0, screenHeight - 20,
-                      screenWidth * elapsedTime / totalDuration, 20, DARKGRAY); // Draw the progress bar
+                      screenWidth * elapsedTime / totalDurations[currentTrack], 20, DARKGRAY); // Draw the progress bar
 
         DrawText(TextFormat("Volume: %02d%%", (int)(roundf(musicVolume * 20) / 20 * 100)),
                  10, screenHeight - 110, 20, DARKGRAY); // Draw the volume percentage
@@ -385,6 +382,7 @@ void loadAllWaveforms() {
                  (int) waves[i].sampleRate);
         printf("End DrawSong %d\n", i);
         EndTextureMode();
+
     }
 
 }
@@ -473,10 +471,8 @@ void playNextTrack(int *currentTrack) {
 
 void seekInMusicStream(const int *currentTrack, float seconds) {
     elapsedTime += seconds;
-    if (elapsedTime > (float) waves[*currentTrack].frameCount /
-                      (float) waves[*currentTrack].sampleRate) {
-        elapsedTime = (float) waves[*currentTrack].frameCount /
-                      (float) waves[*currentTrack].sampleRate;
+    if (elapsedTime > totalDurations[*currentTrack]) {
+        elapsedTime = totalDurations[*currentTrack];
     } else if (elapsedTime < 0.0f) {
         elapsedTime = 0.0f;
     }
