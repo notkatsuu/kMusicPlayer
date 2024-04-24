@@ -153,6 +153,7 @@ int main(void) {
         if (IsKeyPressed(KEY_P)) { // Play next track
             playNextTrack(&currentTrack);
             elapsedTime = 0.0f;
+            playing = true;
         }
 
         // if press esc close window
