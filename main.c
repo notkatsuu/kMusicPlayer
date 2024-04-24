@@ -59,7 +59,7 @@ char **filteredFiles;
 int main(void) {
 
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-    InitWindow(screenWidth, screenHeight, "Practica 4 - Raylib Maze 3D");
+    InitWindow(screenWidth, screenHeight, "kMusicPlayer");
 
     setGuiStyles();
 
