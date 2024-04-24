@@ -240,9 +240,8 @@ int main(void) {
         }
 
         BeginDrawing();
-        ClearBackground(RAYWHITE);
         BeginMode2D(camera);    // Begin 2D mode with camera
-        ClearBackground(BLANK); // Clear the texture background
+        
 
         DrawTextureRec(waveforms[currentTrack].texture,
                        (Rectangle) {0, 0,
@@ -253,7 +252,6 @@ int main(void) {
 
         EndMode2D(); // End 2D mode
 
-        BeginDrawing();
         DrawLine(screenWidth / 2, 25, screenWidth / 2, screenHeight,
                  WHITE); // Draw the bar from top to bottom of the screen
 
@@ -288,6 +286,7 @@ int main(void) {
 
         DrawText(TextFormat("Volume: %02d%%", (int)(roundf(musicVolume * 20) / 20 * 100)),
                  10, screenHeight - 110, 20, DARKGRAY); // Draw the volume percentage
+
         EndDrawing();
     }
 
