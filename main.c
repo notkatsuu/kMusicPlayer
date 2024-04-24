@@ -47,7 +47,7 @@ sem_t sem_fileLoader;
 
 int waveCount = 0;
 float elapsedTime = 0.0f;
-float musicVolume = 1.0f;
+float musicVolume = 0.5f;
 
 typedef struct {
     char *path;
@@ -63,7 +63,7 @@ int main(void) {
 
     setGuiStyles();
 
-    SetTargetFPS(144); // Set our game to run at 60 frames-per-second
+    SetTargetFPS(60); // Set our game to run at 60 frames-per-second
     sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS); //Set up semaphore for file loading
     Vector2 mousePosition = {0};
     Vector2 panOffset = mousePosition;
@@ -74,15 +74,31 @@ int main(void) {
     Vector2 windowPosition = {500, 200}; // Set window position on startup
     SetWindowPosition((int) windowPosition.x, (int) windowPosition.y);
 
+    //Draw a enter directory screen
+    BeginDrawing();
+    ClearBackground(DARKGRAY);
+    DrawText("Please enter your music folder directory", screenWidth / 2 - MeasureText("Please enter your music folder directory", 20) / 2,
+             screenHeight / 2 - 20, 20, RAYWHITE);
+    EndDrawing();
+
+
     RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight); // Load a render texture to draw the camera target in it
 
     InitAudioDevice();
     SetMasterVolume(musicVolume);
-    bool playing = true;
+    bool playing = false;
 
     // Loading files functions-----------------
     loadFiles(); // Load files from directory
     countAudioFiles();
+
+    //Draw a loading screen
+    BeginDrawing();
+    ClearBackground(BLACK);
+    DrawText("Loading music files...", screenWidth / 2 - MeasureText("Loading music files...", 20) / 2,
+             screenHeight / 2 - 20, 20, RAYWHITE);
+    EndDrawing();
+
     loadAllMusic(); // Load all music from the files
     refreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
     //-----------------------------------------
@@ -93,7 +109,7 @@ int main(void) {
 
     int currentTrack = 0; // To track the song that's playing
 
-    elapsedTime = 0.0f; // To track the current time of the song
+
 
     totalDurations = malloc(waveCount * sizeof(float));
 
@@ -102,7 +118,6 @@ int main(void) {
                             (float) waves[i].sampleRate;
     }
 
-    PlayMusicStream(tracks[currentTrack]); // Start music playing
 
     // Initialize camera
     Camera2D camera =
@@ -113,6 +128,10 @@ int main(void) {
 
     int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
     int nextSongTextPosition = screenWidth; //Starting position for the next song text
+    elapsedTime = 0.0f; // To track the current time of the song
+
+    PlayMusicStream(tracks[currentTrack]); // Play the first song
+    PauseMusicStream(tracks[currentTrack]); // Pause the first song (to be played when the user presses space)
 
     // Main game loop
     while (!exitWindow && !WindowShouldClose()) {
@@ -124,7 +143,6 @@ int main(void) {
                 nextSongTextPosition = screenWidth;
                 currentTrack = (currentTrack + 1) % waveCount;
                 PlayMusicStream(tracks[currentTrack]);
-
             }
         }
 
@@ -142,13 +160,13 @@ int main(void) {
             exitWindow = true;
         }
 
-        // advance 5 seconds when right arrow
-        if (IsKeyPressed(KEY_RIGHT)) {
+        // advance 5 seconds when scrolling up with mosue wheel
+        if (IsKeyPressed(KEY_RIGHT ) ||  GetMouseWheelMove() > 0.0f){
             seekInMusicStream(&currentTrack, 5.0f);
         }
 
         // rewind 5 seconds when left arrow
-        if (IsKeyPressed(KEY_LEFT)) {
+        if (IsKeyPressed(KEY_LEFT) || GetMouseWheelMove() < 0.0f){
             seekInMusicStream(&currentTrack, -5.0f);
         }
 
@@ -166,13 +184,13 @@ int main(void) {
         if (IsKeyPressed(KEY_UP) && musicVolume < 1.0f) {
             musicVolume += 0.05f;
             musicVolume = roundf(musicVolume * 20) / 20;
-            SetMasterVolume(musicVolume);
+            SetMasterVolume(powf(musicVolume, 2));
         }
 
         if (IsKeyPressed(KEY_DOWN) && musicVolume > 0.0f) {
             musicVolume -= 0.05f;
             musicVolume = roundf(musicVolume * 20) / 20;
-            SetMasterVolume(musicVolume);
+            SetMasterVolume(powf(musicVolume, 2));
         }
 
         // Update camera target position
