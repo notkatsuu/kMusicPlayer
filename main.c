@@ -241,7 +241,7 @@ int main(void) {
 
         BeginDrawing();
         BeginMode2D(camera);    // Begin 2D mode with camera
-        
+        ClearBackground(BLANK); // Clear the texture background
 
         DrawTextureRec(waveforms[currentTrack].texture,
                        (Rectangle) {0, 0,
