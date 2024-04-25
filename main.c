@@ -10,7 +10,7 @@
 #include "raygui.h"
 #include "semaphore.h"
 
-#define MAX_LOADING_THREADS 4
+#define MAX_LOADING_THREADS 14
 
 void setGuiStyles();
 
@@ -118,12 +118,9 @@ int main(void) {
 
 
 
-    totalDurations = malloc(waveCount * sizeof(float));
 
-    for (int i = 0; i < waveCount; i++) {
-        totalDurations[i] = (float) waves[i].frameCount /
-                            (float) waves[i].sampleRate;
-    }
+
+
 
 
     // Initialize camera
@@ -351,57 +348,65 @@ void *loadMusic(void *arg) { // Thread function to load music
     int index = data->index;
 
     printf("Loading file %s\n", path);
+    printf("File index: %i\n", index);
     if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav") ||
         IsFileExtension(path, ".ogg") || IsFileExtension(path, ".qoa")){
-        Wave candidateWave = LoadWave(path);
+        waves[index] = LoadWave(path);
 
-        if (candidateWave.data == NULL || candidateWave.sampleRate == 0 ||
-            candidateWave.sampleSize == 0 || candidateWave.channels == 0 ||
-            candidateWave.frameCount == 0 || candidateWave.sampleRate != 44100 && candidateWave.sampleRate != 48000) {
-            printf("Corrupted file %s\n", path);
-            waveCount--;
+        if (waves[index].data == NULL || waves[index].sampleRate == 0 ||
+                waves[index].sampleSize == 0 || waves[index].channels == 0 ||
+                waves[index].frameCount == 0 || waves[index].sampleRate != 44100 && waves[index].sampleRate != 48000) {
+            //printf("Corrupted file %s\n", path);
+            //waveCount--;
             filteredFiles[index] = NULL; // Set filteredFiles[index] to NULL
-            UnloadWave(candidateWave);
+            UnloadWave(waves[index]);
+            waves[index] = (Wave) {0}; // Set wave to 0
+            waves[index].data = NULL; // Set wave data to NULL
+            tracks[index] = (Music) {0}; // Set track to 0
+            totalDurations[index] = 0.0f; // Set total duration to 0
             sem_post(&sem_fileLoader);
+
+            //print: file x is corrupted and wont be loaded between \n\n
+            printf("\n\nCorrupted file couldn't be loaded %s", path);
+            //print it's data
+            printf("Wave frame count: %i\n", (int) waves[index].frameCount);
+            printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
             return (void *) -1; // return -1 for failure
         }
 
-        waves[index] = WaveCopy(candidateWave);
         tracks[index] = LoadMusicStream(path);
         filteredFiles[index] = path;
 
+        totalDurations[index] = (float) waves[index].frameCount /
+                            (float) waves[index].sampleRate;
+
         printf("\n\nLoaded file %s\n", path);
+        printf("File index: %i\n", index);
         printf("Wave frame count: %i\n", (int) waves[index].frameCount);
         printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
 
-        UnloadWave(candidateWave);
     }
     sem_post(&sem_fileLoader);
     return (void *) 0; // return 0 for success
 }
 
 void loadAllWaveforms() {
+
+    waveforms = malloc(waveCount * sizeof(RenderTexture2D));
     for (int i = 0; i < waveCount; i++) {
         //print waveform x of total waveforms
         printf("\n\nLoading waveform %d of %d\n", i+1, waveCount);
-        if (filteredFiles[i] != NULL) {
-            printf("Load file %s\n", filteredFiles[i]);
-        } else {
-            printf("filteredFiles[%d] is NULL\n", i);
-        }
         printf("Wave frame count: %i\n", (int) waves[i].frameCount);
         printf("Wave sample rate: %i\n", (int) waves[i].sampleRate);
+        //print current file
+        printf("Current file: %s\n", filteredFiles[i]);
 
 
-        if (waves[i].sampleRate == 0 ||waves[i].frameCount == 0 || (waves[i].sampleRate != 44100 && waves[i].sampleRate != 48000)) {
 
-
-            continue;
-        }
 
         waveforms[i] = LoadRenderTexture(
                 (int) roundf(((waves[i].frameCount) / waves[i].sampleRate) * 100), 500);
-        //print texture size
+
         printf("Texture size: %d x %d\n", waveforms[i].texture.width, waveforms[i].texture.height);
 
         BeginTextureMode(waveforms[i]);
@@ -440,6 +445,7 @@ void countAudioFiles() {
 void loadAllMusic() {
     waves = malloc(waveCount * sizeof(Wave));
     tracks = malloc(waveCount * sizeof(Music));
+    totalDurations = malloc(waveCount * sizeof(float));
 
     pthread_t *threads = malloc(files.count * sizeof(pthread_t));
     ThreadData *threadData = malloc(files.count * sizeof(ThreadData));
@@ -466,32 +472,45 @@ void loadAllMusic() {
 }
 
 void refreshDataAllocation() {
-    Music *tempTracks = realloc(tracks, waveCount * sizeof(Music));
-    if (tempTracks != NULL) {
-        tracks = tempTracks;
+    int validCount = 0;
+    for (int i = 0; i < waveCount; i++) {
+        if (filteredFiles[i] != NULL) {
+            validCount++;
+        }
     }
 
-    Wave *tempWaves = realloc(waves, waveCount * sizeof(Wave));
-    if (tempWaves != NULL) {
-        waves = tempWaves;
-    }
+    // Create new arrays for the valid files
+    Music *newTracks = malloc(validCount * sizeof(Music));
+    Wave *newWaves = malloc(validCount * sizeof(Wave));
+    char **newFilteredFiles = malloc(validCount * sizeof(char *));
 
-    RenderTexture2D *tempWaveforms = realloc(waveforms, waveCount * sizeof(RenderTexture2D));
-    if (tempWaveforms != NULL) {
-        waveforms = tempWaveforms;
+    int j = 0;
+    for (int i = 0; i < waveCount; i++) {
+        if (filteredFiles[i] != NULL) {
+            newTracks[j] = tracks[i];
+            newWaves[j] = waves[i];
+            newFilteredFiles[j] = filteredFiles[i];
+            j++;
+        }
     }
+    // Free the old arrays
+    free(tracks);
+    free(waves);
+    free(filteredFiles);
 
-    char **tempFilteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
-    if (tempFilteredFiles != NULL) {
-        filteredFiles = tempFilteredFiles;
-    }
+    // Replace the old arrays with the new ones
+    tracks = newTracks;
+    waves = newWaves;
+
+    filteredFiles = newFilteredFiles;
+
+    waveCount = validCount;
 }
 
 void playNextTrack(int *currentTrack) {
 
     StopMusicStream(tracks[*currentTrack]);
     *currentTrack = (*currentTrack + 1) % waveCount;
-    tracks[*currentTrack] = tracks[*currentTrack];
     PlayMusicStream(tracks[*currentTrack]);
     waves[*currentTrack] = waves[*currentTrack];
 }
