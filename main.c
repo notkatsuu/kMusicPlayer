@@ -364,10 +364,7 @@ void *LoadMusic(void *arg) { // Thread function to load music
             //waveCount--;
             filteredFiles[index] = NULL; // Set filteredFiles[index] to NULL
             UnloadWave(waves[index]);
-            waves[index] = (Wave) {0}; // Set wave to 0
-            waves[index].data = NULL; // Set wave data to NULL
-            tracks[index] = (Music) {0}; // Set track to 0
-            totalDurations[index] = 0.0f; // Set total duration to 0
+
             sem_post(&sem_fileLoader);
 
             //print: file x is corrupted and wont be loaded between \n\n
@@ -414,7 +411,7 @@ void LoadAllWaveforms() {
         BeginTextureMode(waveforms[i]);
         ClearBackground(BLACK);
         printf("Drawing DrawSong %d\n", i + 1);
-        DrawSong(waves[i].data, (int) waves[i].frameCount, 100,
+        DrawSong(waves[i].data, (int) waves[i].frameCount, 300,
                  (int) waves[i].sampleRate);
         printf("End DrawSong %d\n", i);
         EndTextureMode();
