@@ -24,6 +24,13 @@ if (NOT raylib_FOUND) # If there's none, fetch and build raylib
     endif()
 endif()
 
+#if(MSVC)
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
+#else()
+#    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mwindows")
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mwindows")
+#endif()
+
 # Our Project
 add_executable(${PROJECT_NAME} main.c include/tinyfiledialogs.c) # Add tinyfiledialogs.c to the compiled files
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
