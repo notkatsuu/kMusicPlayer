@@ -130,6 +130,7 @@ int main(void) {
                         {(float) screenWidth / 2, (float) screenHeight / 2},
                         0.0f,
                         0.75f};
+    camera.zoom = 3.0f; // Set camera zoom to 1.0f
 
     int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
     int nextSongTextPosition = screenWidth; //Starting position for the next song text
@@ -188,24 +189,24 @@ int main(void) {
             }
         }
 
-        if (IsKeyPressed(KEY_UP) && musicVolume < 1.0f) {
-            musicVolume += 0.05f;
+        if (IsKeyPressed(KEY_UP)) {
+            musicVolume += (musicVolume < 1.0f) ? 0.05f : 0.0f; // Increase music volume (up to 1.0f
             musicVolume = roundf(musicVolume * 20) / 20;
             SetMasterVolume(powf(musicVolume, 2));
         }
 
-        if (IsKeyPressed(KEY_DOWN) && musicVolume > 0.0f) {
-            musicVolume -= 0.05f;
+        if (IsKeyPressed(KEY_DOWN)) {
+            musicVolume -= (musicVolume > 0.0f) ? 0.05f : 0.0f; // Decrease music volume (up to 0.0f
             musicVolume = roundf(musicVolume * 20) / 20;
             SetMasterVolume(powf(musicVolume, 2));
         }
 
         // Update camera target position
-        camera.target.x = elapsedTime * 100;
+        camera.target.x = elapsedTime * 50;
         camera.offset = (Vector2) {(float) screenWidth / 2,
                                    (float) screenHeight / 2}; // Center the camera
 
-        camera.zoom = 2.0f; // Set camera zoom to 1.0f
+
         textHeaderPosition -= 1; // Adjust the value to change the speed
         if (textHeaderPosition +
             MeasureText(TextFormat("Playing: %s",
@@ -331,8 +332,8 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
 
     for (int i = 0; i < newNumSamples; i++) {
         points[i] =
-                (Vector2) {(float) i * (float) drawFactor / (float) sampleRate / 2 * 100,
-                           (float) screenHeight / 2 - waveData[i * drawFactor] * 200};
+                (Vector2) {(float) i * (float) drawFactor / (float) sampleRate / 2 * 50,
+                           (float) screenHeight / 2 - waveData[i * drawFactor] * 100};
     }
     DrawLineStrip(points, newNumSamples, DARKGRAY);
     free(points); // Don't forget to free the allocated memory*/
@@ -404,14 +405,14 @@ void LoadAllWaveforms() {
 
 
         waveforms[i] = LoadRenderTexture(
-                (int) roundf(((waves[i].frameCount) / waves[i].sampleRate) * 100), 500);
+                (int) roundf(((waves[i].frameCount) / waves[i].sampleRate) * 50), 500);
 
         printf("Texture size: %d x %d\n", waveforms[i].texture.width, waveforms[i].texture.height);
 
         BeginTextureMode(waveforms[i]);
         ClearBackground(BLACK);
         printf("Drawing DrawSong %d\n", i + 1);
-        DrawSong(waves[i].data, (int) waves[i].frameCount, 300,
+        DrawSong(waves[i].data, (int) waves[i].frameCount, 50,
                  (int) waves[i].sampleRate);
         printf("End DrawSong %d\n", i);
         EndTextureMode();
