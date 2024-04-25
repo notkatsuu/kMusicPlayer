@@ -47,7 +47,7 @@ sem_t sem_fileLoader;
 
 int waveCount = 0;
 float elapsedTime = 0.0f;
-float musicVolume = 0.5f;
+float musicVolume = 0.0f;
 
 typedef struct {
     char *path;
@@ -63,7 +63,7 @@ int main(void) {
 
     setGuiStyles();
 
-    SetTargetFPS(60); // Set our game to run at 60 frames-per-second
+    SetTargetFPS(144); // Set our game to run at 60 frames-per-second
     sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS); //Set up semaphore for file loading
     Vector2 mousePosition = {0};
     Vector2 panOffset = mousePosition;
@@ -84,11 +84,15 @@ int main(void) {
 
     RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight); // Load a render texture to draw the camera target in it
 
+
     InitAudioDevice();
+
+
     SetMasterVolume(musicVolume);
     bool playing = false;
 
     // Loading files functions-----------------
+
     loadFiles(); // Load files from directory
     countAudioFiles();
 
@@ -99,13 +103,16 @@ int main(void) {
              screenHeight / 2 - 20, 20, RAYWHITE);
     EndDrawing();
 
+
+
     loadAllMusic(); // Load all music from the files
     refreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
+
+
+    loadAllWaveforms(); // Load all waveforms of the music into array of render textures
     //-----------------------------------------
 
-    //load waveforms
-    printf("Loading waveforms\n");
-    loadAllWaveforms(); // Load all waveforms of the music into array of render textures
+
 
     int currentTrack = 0; // To track the song that's playing
 
@@ -317,18 +324,15 @@ int main(void) {
 void DrawSong(const float *waveData, int numSamples, int drawFactor,
               int sampleRate) {
 
-    int newNumSamples = numSamples / drawFactor * 2;
-    printf("New num samples: %d\n", newNumSamples);
-    Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
-    for (int i = 0; i < newNumSamples; i++) {
-        // Calculate the position of the point
-        //print point x of totalpoints
+    int newNumSamples = numSamples / drawFactor * 2; //*2 cause every pixel of width needs the start and endpoint of the wave
 
+    Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
+
+    for (int i = 0; i < newNumSamples; i++) {
         points[i] =
                 (Vector2) {(float) i * (float) drawFactor / (float) sampleRate / 2 * 100,
                            (float) screenHeight / 2 - waveData[i * drawFactor] * 200};
     }
-    printf("Drawing line strip\n");
     DrawLineStrip(points, newNumSamples, DARKGRAY);
     free(points); // Don't forget to free the allocated memory*/
 }
@@ -347,20 +351,22 @@ void *loadMusic(void *arg) { // Thread function to load music
     int index = data->index;
 
     printf("Loading file %s\n", path);
-    if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav")) {
+    if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav") ||
+        IsFileExtension(path, ".ogg") || IsFileExtension(path, ".qoa")){
         Wave candidateWave = LoadWave(path);
 
         if (candidateWave.data == NULL || candidateWave.sampleRate == 0 ||
             candidateWave.sampleSize == 0 || candidateWave.channels == 0 ||
-            candidateWave.frameCount == 0) {
+            candidateWave.frameCount == 0 || candidateWave.sampleRate != 44100 && candidateWave.sampleRate != 48000) {
             printf("Corrupted file %s\n", path);
             waveCount--;
+            filteredFiles[index] = NULL; // Set filteredFiles[index] to NULL
             UnloadWave(candidateWave);
             sem_post(&sem_fileLoader);
             return (void *) -1; // return -1 for failure
         }
 
-        waves[index] = LoadWave(path);
+        waves[index] = WaveCopy(candidateWave);
         tracks[index] = LoadMusicStream(path);
         filteredFiles[index] = path;
 
@@ -378,13 +384,18 @@ void loadAllWaveforms() {
     for (int i = 0; i < waveCount; i++) {
         //print waveform x of total waveforms
         printf("\n\nLoading waveform %d of %d\n", i+1, waveCount);
-        //printf("Load file %s\n", filteredFiles[i]); Gives exception on corrupt examples (Work in progress)
+        if (filteredFiles[i] != NULL) {
+            printf("Load file %s\n", filteredFiles[i]);
+        } else {
+            printf("filteredFiles[%d] is NULL\n", i);
+        }
         printf("Wave frame count: %i\n", (int) waves[i].frameCount);
         printf("Wave sample rate: %i\n", (int) waves[i].sampleRate);
 
 
         if (waves[i].sampleRate == 0 ||waves[i].frameCount == 0 || (waves[i].sampleRate != 44100 && waves[i].sampleRate != 48000)) {
-            printf("Corrupted file %s\n", filteredFiles[i]); //This should be implemented on the filter on loadFiles but haven't figured out why it doesn't really work...
+
+
             continue;
         }
 
@@ -395,7 +406,7 @@ void loadAllWaveforms() {
 
         BeginTextureMode(waveforms[i]);
         ClearBackground(BLACK);
-        printf("Drawing DrawSong %d\n", i);
+        printf("Drawing DrawSong %d\n", i+1);
         DrawSong(waves[i].data, (int) waves[i].frameCount, 100,
                  (int) waves[i].sampleRate);
         printf("End DrawSong %d\n", i);
@@ -406,35 +417,47 @@ void loadAllWaveforms() {
 }
 
 void loadFiles() {
+    printf("Loading files from directory\n");
     directoryPath = tinyfd_selectFolderDialog("Select a directory", NULL);
 
     files = LoadDirectoryFiles(directoryPath);
 }
 
 void countAudioFiles() {
+    printf("Counting audio files\n");
+    waveCount = 0;
     for (int i = 0; i < files.count; i++) {
         if (IsFileExtension(files.paths[i], ".mp3") ||
-            IsFileExtension(files.paths[i], ".wav")) {
+            IsFileExtension(files.paths[i], ".wav") ||
+            IsFileExtension(files.paths[i], ".ogg") ||
+            IsFileExtension(files.paths[i], ".qoa")){
             waveCount++;
         }
     }
+    filteredFiles = malloc(waveCount * sizeof(char *));
 }
 
-void loadAllMusic() { //calls the loadMusic function for each file
-    filteredFiles = malloc(waveCount * sizeof(char *));
+void loadAllMusic() {
     waves = malloc(waveCount * sizeof(Wave));
     tracks = malloc(waveCount * sizeof(Music));
 
     pthread_t *threads = malloc(files.count * sizeof(pthread_t));
     ThreadData *threadData = malloc(files.count * sizeof(ThreadData));
 
+    int audioFileIndex = 0;
     for (int i = 0; i < files.count; i++) {
-        threadData[i].path = files.paths[i];
-        threadData[i].index = i;
-        pthread_create(&threads[i], NULL, loadMusic, &threadData[i]);
+        if (IsFileExtension(files.paths[i], ".mp3") ||
+            IsFileExtension(files.paths[i], ".wav") ||
+            IsFileExtension(files.paths[i], ".ogg") ||
+            IsFileExtension(files.paths[i], ".qoa")){
+            threadData[audioFileIndex].path = files.paths[i];
+            threadData[audioFileIndex].index = audioFileIndex;
+            pthread_create(&threads[audioFileIndex], NULL, loadMusic, &threadData[audioFileIndex]);
+            audioFileIndex++;
+        }
     }
 
-    for (int i = 0; i < files.count; i++) {
+    for (int i = 0; i < waveCount; i++) {
         pthread_join(threads[i], NULL);
     }
 
@@ -442,44 +465,30 @@ void loadAllMusic() { //calls the loadMusic function for each file
     free(threadData);
 }
 
-void refreshDataAllocation() { //reallocates memory for the dinamic arrays
-    char **tempFilteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
-    if (tempFilteredFiles == NULL) {
-        // handle error, e.g., by freeing filteredFiles and setting it to NULL
-        free(filteredFiles);
-        filteredFiles = NULL;
-    } else {
-        filteredFiles = tempFilteredFiles;
-    }
-
+void refreshDataAllocation() {
     Music *tempTracks = realloc(tracks, waveCount * sizeof(Music));
-    if (tempTracks == NULL) {
-        // handle error, e.g., by freeing filteredFiles and setting it to NULL
-        free(tracks);
-        tracks = NULL;
-    } else {
+    if (tempTracks != NULL) {
         tracks = tempTracks;
     }
 
     Wave *tempWaves = realloc(waves, waveCount * sizeof(Wave));
-    if (tempWaves == NULL) {
-        // handle error, e.g., by freeing filteredFiles and setting it to NULL
-        free(waves);
-        waves = NULL;
-    } else {
+    if (tempWaves != NULL) {
         waves = tempWaves;
     }
+
     RenderTexture2D *tempWaveforms = realloc(waveforms, waveCount * sizeof(RenderTexture2D));
-    if (tempWaveforms == NULL) {
-        // handle error, e.g., by freeing filteredFiles and setting it to NULL
-        free(waveforms);
-        waveforms = NULL;
-    } else {
+    if (tempWaveforms != NULL) {
         waveforms = tempWaveforms;
+    }
+
+    char **tempFilteredFiles = realloc(filteredFiles, waveCount * sizeof(char *));
+    if (tempFilteredFiles != NULL) {
+        filteredFiles = tempFilteredFiles;
     }
 }
 
 void playNextTrack(int *currentTrack) {
+
     StopMusicStream(tracks[*currentTrack]);
     *currentTrack = (*currentTrack + 1) % waveCount;
     tracks[*currentTrack] = tracks[*currentTrack];
