@@ -12,26 +12,26 @@
 
 #define MAX_LOADING_THREADS 14
 
-void setGuiStyles();
+void SetGuiStyles();
 
-void loadFiles();
+void LoadFiles();
 
-void countAudioFiles();
+void CountAudioFiles();
 
-void loadAllMusic();
+void LoadAllMusic();
 
-void refreshDataAllocation();
+void RefreshDataAllocation();
 
 void DrawSong(const float *waveData, int numSamples, int drawFactor,
               int sampleRate);
 
-void loadAllWaveforms();
+void LoadAllWaveforms();
 
-void *loadMusic(void *arg);
+void *LoadMusic(void *arg);
 
-void playNextTrack(int *currentTrack);
+void PlayNextTrack(int *currentTrack);
 
-void seekInMusicStream(const int *currentTrack, float seconds);
+void SeekInMusicStream(const int *currentTrack, float seconds);
 
 const int screenWidth = 800;
 const int screenHeight = 450;
@@ -61,7 +61,7 @@ int main(void) {
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     InitWindow(screenWidth, screenHeight, "kMusicPlayer");
 
-    setGuiStyles();
+    SetGuiStyles();
 
     SetTargetFPS(144); // Set our game to run at 60 frames-per-second
     sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS); //Set up semaphore for file loading
@@ -77,12 +77,14 @@ int main(void) {
     //Draw a enter directory screen
     BeginDrawing();
     ClearBackground(DARKGRAY);
-    DrawText("Please enter your music folder directory", screenWidth / 2 - MeasureText("Please enter your music folder directory", 20) / 2,
+    DrawText("Please enter your music folder directory",
+             screenWidth / 2 - MeasureText("Please enter your music folder directory", 20) / 2,
              screenHeight / 2 - 20, 20, RAYWHITE);
     EndDrawing();
 
 
-    RenderTexture2D camTarget = LoadRenderTexture(screenWidth, screenHeight); // Load a render texture to draw the camera target in it
+    RenderTexture2D camTarget = LoadRenderTexture(screenWidth,
+                                                  screenHeight); // Load a render texture to draw the camera target in it
 
 
     InitAudioDevice();
@@ -93,8 +95,8 @@ int main(void) {
 
     // Loading files functions-----------------
 
-    loadFiles(); // Load files from directory
-    countAudioFiles();
+    LoadFiles(); // Load files from directory
+    CountAudioFiles();
 
     //Draw a loading screen
     BeginDrawing();
@@ -104,12 +106,11 @@ int main(void) {
     EndDrawing();
 
 
+    LoadAllMusic(); // Load all music from the files
+    RefreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
 
-    loadAllMusic(); // Load all music from the files
-    refreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
 
-
-    loadAllWaveforms(); // Load all waveforms of the music into array of render textures
+    LoadAllWaveforms(); // Load all waveforms of the music into array of render textures
     //-----------------------------------------
 
 
@@ -141,7 +142,8 @@ int main(void) {
     while (!exitWindow && !WindowShouldClose()) {
         if (playing) {
             elapsedTime += GetFrameTime(); // Update the elapsed time
-            if (elapsedTime >= totalDurations[currentTrack]) { // If the song ends, play the next one, updating the duration, elapsed time, etc.
+            if (elapsedTime >=
+                totalDurations[currentTrack]) { // If the song ends, play the next one, updating the duration, elapsed time, etc.
                 StopMusicStream(tracks[currentTrack]);
                 elapsedTime = 0.0f;
                 nextSongTextPosition = screenWidth;
@@ -155,7 +157,7 @@ int main(void) {
                 tracks[currentTrack]); // Update music stream with new track
 
         if (IsKeyPressed(KEY_P)) { // Play next track
-            playNextTrack(&currentTrack);
+            PlayNextTrack(&currentTrack);
             elapsedTime = 0.0f;
             playing = true;
         }
@@ -166,13 +168,13 @@ int main(void) {
         }
 
         // advance 5 seconds when scrolling up with mosue wheel
-        if (IsKeyPressed(KEY_RIGHT ) ||  GetMouseWheelMove() > 0.0f){
-            seekInMusicStream(&currentTrack, 5.0f);
+        if (IsKeyPressed(KEY_RIGHT) || GetMouseWheelMove() > 0.0f) {
+            SeekInMusicStream(&currentTrack, 5.0f);
         }
 
         // rewind 5 seconds when left arrow
-        if (IsKeyPressed(KEY_LEFT) || GetMouseWheelMove() < 0.0f){
-            seekInMusicStream(&currentTrack, -5.0f);
+        if (IsKeyPressed(KEY_LEFT) || GetMouseWheelMove() < 0.0f) {
+            SeekInMusicStream(&currentTrack, -5.0f);
         }
 
         // pause
@@ -260,8 +262,9 @@ int main(void) {
         DrawLine(screenWidth / 2, 25, screenWidth / 2, screenHeight,
                  WHITE); // Draw the bar from top to bottom of the screen
 
-        DrawRectangleGradientV(0, 0, screenWidth, (screenHeight/2)-20, BLACK, BLANK); // Draw the top bar
-        DrawRectangleGradientV(0, (screenHeight/2)+20, screenWidth, screenHeight/2, BLANK, BLACK); // Draw the bottom bar
+        DrawRectangleGradientV(0, 0, screenWidth, (screenHeight / 2) - 20, BLACK, BLANK); // Draw the top bar
+        DrawRectangleGradientV(0, (screenHeight / 2) + 20, screenWidth, screenHeight / 2, BLANK,
+                               BLACK); // Draw the bottom bar
         DrawText(
                 TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
                 textHeaderPosition, 10, 20, DARKGRAY); // Draw the title of the song
@@ -289,7 +292,7 @@ int main(void) {
         DrawRectangle(0, screenHeight - 20,
                       screenWidth * elapsedTime / totalDurations[currentTrack], 20, DARKGRAY); // Draw the progress bar
 
-        DrawText(TextFormat("Volume: %02d%%", (int)(roundf(musicVolume * 20) / 20 * 100)),
+        DrawText(TextFormat("Volume: %02d%%", (int) (roundf(musicVolume * 20) / 20 * 100)),
                  10, screenHeight - 110, 20, DARKGRAY); // Draw the volume percentage
 
         EndDrawing();
@@ -321,7 +324,8 @@ int main(void) {
 void DrawSong(const float *waveData, int numSamples, int drawFactor,
               int sampleRate) {
 
-    int newNumSamples = numSamples / drawFactor * 2; //*2 cause every pixel of width needs the start and endpoint of the wave
+    int newNumSamples =
+            numSamples / drawFactor * 2; //*2 cause every pixel of width needs the start and endpoint of the wave
 
     Vector2 *points = malloc(newNumSamples * sizeof(Vector2));
 
@@ -334,14 +338,14 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
     free(points); // Don't forget to free the allocated memory*/
 }
 
-void setGuiStyles() {
+void SetGuiStyles() {
     GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(WHITE));
     GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, ColorToInt(DARKGRAY));
     GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(BLACK));
 }
 
-void *loadMusic(void *arg) { // Thread function to load music
+void *LoadMusic(void *arg) { // Thread function to load music
     sem_wait(&sem_fileLoader);
     ThreadData *data = (ThreadData *) arg;
     char *path = data->path;
@@ -350,12 +354,12 @@ void *loadMusic(void *arg) { // Thread function to load music
     printf("Loading file %s\n", path);
     printf("File index: %i\n", index);
     if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav") ||
-        IsFileExtension(path, ".ogg") || IsFileExtension(path, ".qoa")){
+        IsFileExtension(path, ".ogg") || IsFileExtension(path, ".qoa")) {
         waves[index] = LoadWave(path);
 
         if (waves[index].data == NULL || waves[index].sampleRate == 0 ||
-                waves[index].sampleSize == 0 || waves[index].channels == 0 ||
-                waves[index].frameCount == 0 || waves[index].sampleRate != 44100 && waves[index].sampleRate != 48000) {
+            waves[index].sampleSize == 0 || waves[index].channels == 0 ||
+            waves[index].frameCount == 0 || waves[index].sampleRate != 44100 && waves[index].sampleRate != 48000) {
             //printf("Corrupted file %s\n", path);
             //waveCount--;
             filteredFiles[index] = NULL; // Set filteredFiles[index] to NULL
@@ -378,7 +382,7 @@ void *loadMusic(void *arg) { // Thread function to load music
         filteredFiles[index] = path;
 
         totalDurations[index] = (float) waves[index].frameCount /
-                            (float) waves[index].sampleRate;
+                                (float) waves[index].sampleRate;
 
         printf("\n\nLoaded file %s\n", path);
         printf("File index: %i\n", index);
@@ -390,18 +394,16 @@ void *loadMusic(void *arg) { // Thread function to load music
     return (void *) 0; // return 0 for success
 }
 
-void loadAllWaveforms() {
+void LoadAllWaveforms() {
 
     waveforms = malloc(waveCount * sizeof(RenderTexture2D));
     for (int i = 0; i < waveCount; i++) {
         //print waveform x of total waveforms
-        printf("\n\nLoading waveform %d of %d\n", i+1, waveCount);
+        printf("\n\nLoading waveform %d of %d\n", i + 1, waveCount);
         printf("Wave frame count: %i\n", (int) waves[i].frameCount);
         printf("Wave sample rate: %i\n", (int) waves[i].sampleRate);
         //print current file
         printf("Current file: %s\n", filteredFiles[i]);
-
-
 
 
         waveforms[i] = LoadRenderTexture(
@@ -411,7 +413,7 @@ void loadAllWaveforms() {
 
         BeginTextureMode(waveforms[i]);
         ClearBackground(BLACK);
-        printf("Drawing DrawSong %d\n", i+1);
+        printf("Drawing DrawSong %d\n", i + 1);
         DrawSong(waves[i].data, (int) waves[i].frameCount, 100,
                  (int) waves[i].sampleRate);
         printf("End DrawSong %d\n", i);
@@ -421,28 +423,28 @@ void loadAllWaveforms() {
 
 }
 
-void loadFiles() {
+void LoadFiles() {
     printf("Loading files from directory\n");
     directoryPath = tinyfd_selectFolderDialog("Select a directory", NULL);
 
     files = LoadDirectoryFiles(directoryPath);
 }
 
-void countAudioFiles() {
+void CountAudioFiles() {
     printf("Counting audio files\n");
     waveCount = 0;
     for (int i = 0; i < files.count; i++) {
         if (IsFileExtension(files.paths[i], ".mp3") ||
             IsFileExtension(files.paths[i], ".wav") ||
             IsFileExtension(files.paths[i], ".ogg") ||
-            IsFileExtension(files.paths[i], ".qoa")){
+            IsFileExtension(files.paths[i], ".qoa")) {
             waveCount++;
         }
     }
     filteredFiles = malloc(waveCount * sizeof(char *));
 }
 
-void loadAllMusic() {
+void LoadAllMusic() {
     waves = malloc(waveCount * sizeof(Wave));
     tracks = malloc(waveCount * sizeof(Music));
     totalDurations = malloc(waveCount * sizeof(float));
@@ -455,10 +457,10 @@ void loadAllMusic() {
         if (IsFileExtension(files.paths[i], ".mp3") ||
             IsFileExtension(files.paths[i], ".wav") ||
             IsFileExtension(files.paths[i], ".ogg") ||
-            IsFileExtension(files.paths[i], ".qoa")){
+            IsFileExtension(files.paths[i], ".qoa")) {
             threadData[audioFileIndex].path = files.paths[i];
             threadData[audioFileIndex].index = audioFileIndex;
-            pthread_create(&threads[audioFileIndex], NULL, loadMusic, &threadData[audioFileIndex]);
+            pthread_create(&threads[audioFileIndex], NULL, LoadMusic, &threadData[audioFileIndex]);
             audioFileIndex++;
         }
     }
@@ -471,7 +473,7 @@ void loadAllMusic() {
     free(threadData);
 }
 
-void refreshDataAllocation() {
+void RefreshDataAllocation() {
     int validCount = 0;
     for (int i = 0; i < waveCount; i++) {
         if (filteredFiles[i] != NULL) {
@@ -507,7 +509,7 @@ void refreshDataAllocation() {
     waveCount = validCount;
 }
 
-void playNextTrack(int *currentTrack) {
+void PlayNextTrack(int *currentTrack) {
 
     StopMusicStream(tracks[*currentTrack]);
     *currentTrack = (*currentTrack + 1) % waveCount;
@@ -515,7 +517,7 @@ void playNextTrack(int *currentTrack) {
     waves[*currentTrack] = waves[*currentTrack];
 }
 
-void seekInMusicStream(const int *currentTrack, float seconds) {
+void SeekInMusicStream(const int *currentTrack, float seconds) {
     elapsedTime += seconds;
     if (elapsedTime > totalDurations[*currentTrack]) {
         elapsedTime = totalDurations[*currentTrack];
