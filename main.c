@@ -13,24 +13,14 @@
 #define MAX_LOADING_THREADS 14
 
 void SetGuiStyles();
-
 void LoadFiles();
-
 void CountAudioFiles();
-
 void LoadAllMusic();
-
 void RefreshDataAllocation();
-
-void DrawSong(const float *waveData, int numSamples, int drawFactor,
-              int sampleRate);
-
+void DrawSong(const float *waveData, int numSamples, int drawFactor, int sampleRate);
 void LoadAllWaveforms();
-
 void *LoadMusic(void *arg);
-
 void PlayNextTrack(int *currentTrack);
-
 void SeekInMusicStream(const int *currentTrack, float seconds);
 
 const int screenWidth = 800;
@@ -86,10 +76,7 @@ int main(void) {
     RenderTexture2D camTarget = LoadRenderTexture(screenWidth,
                                                   screenHeight); // Load a render texture to draw the camera target in it
 
-
     InitAudioDevice();
-
-
     SetMasterVolume(musicVolume);
     bool playing = false;
 
@@ -108,21 +95,10 @@ int main(void) {
 
     LoadAllMusic(); // Load all music from the files
     RefreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
-
-
     LoadAllWaveforms(); // Load all waveforms of the music into array of render textures
     //-----------------------------------------
 
-
-
     int currentTrack = 0; // To track the song that's playing
-
-
-
-
-
-
-
 
     // Initialize camera
     Camera2D camera =
@@ -250,7 +226,6 @@ int main(void) {
         BeginDrawing();
         BeginMode2D(camera);    // Begin 2D mode with camera
         ClearBackground(BLANK); // Clear the texture background
-
         DrawTextureRec(waveforms[currentTrack].texture,
                        (Rectangle) {0, 0,
                                     (float) waveforms[currentTrack].texture.width,
@@ -315,8 +290,7 @@ int main(void) {
     free(filteredFiles);            // Unload filtered files memory
     sem_destroy(&sem_fileLoader);
 
-    CloseAudioDevice(); // Close audio device (music streaming is automatically
-    // stopped)
+    CloseAudioDevice(); // Close audio device (music streaming is automatically stopped)
     CloseWindow();      // Close window and OpenGL context
 
     return 0;
@@ -340,10 +314,10 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
 }
 
 void SetGuiStyles() {
-    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(WHITE));
-    GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
     GuiSetStyle(DEFAULT, BASE_COLOR_NORMAL, ColorToInt(DARKGRAY));
     GuiSetStyle(DEFAULT, BACKGROUND_COLOR, ColorToInt(BLACK));
+    GuiSetStyle(DEFAULT, TEXT_COLOR_NORMAL, ColorToInt(WHITE));
+    GuiSetStyle(DEFAULT, TEXT_SIZE, 20);
 }
 
 void *LoadMusic(void *arg) { // Thread function to load music
@@ -352,8 +326,8 @@ void *LoadMusic(void *arg) { // Thread function to load music
     char *path = data->path;
     int index = data->index;
 
-    printf("Loading file %s\n", path);
-    printf("File index: %i\n", index);
+    //printf("Loading file %s\n", path);
+    //printf("File index: %i\n", index);
     if (IsFileExtension(path, ".mp3") || IsFileExtension(path, ".wav") ||
         IsFileExtension(path, ".ogg") || IsFileExtension(path, ".qoa")) {
         waves[index] = LoadWave(path);
@@ -369,10 +343,10 @@ void *LoadMusic(void *arg) { // Thread function to load music
             sem_post(&sem_fileLoader);
 
             //print: file x is corrupted and wont be loaded between \n\n
-            printf("\n\nCorrupted file couldn't be loaded %s", path);
+            //printf("\n\nCorrupted file couldn't be loaded %s", path);
             //print it's data
-            printf("Wave frame count: %i\n", (int) waves[index].frameCount);
-            printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
+            //printf("Wave frame count: %i\n", (int) waves[index].frameCount);
+            //printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
             return (void *) -1; // return -1 for failure
         }
 
@@ -382,10 +356,10 @@ void *LoadMusic(void *arg) { // Thread function to load music
         totalDurations[index] = (float) waves[index].frameCount /
                                 (float) waves[index].sampleRate;
 
-        printf("\n\nLoaded file %s\n", path);
-        printf("File index: %i\n", index);
-        printf("Wave frame count: %i\n", (int) waves[index].frameCount);
-        printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
+        //printf("\n\nLoaded file %s\n", path);
+        //printf("File index: %i\n", index);
+        //printf("Wave frame count: %i\n", (int) waves[index].frameCount);
+        //printf("Wave sample rate: %i\n\n", (int) waves[index].sampleRate);
 
     }
     sem_post(&sem_fileLoader);
@@ -393,28 +367,25 @@ void *LoadMusic(void *arg) { // Thread function to load music
 }
 
 void LoadAllWaveforms() {
-
     waveforms = malloc(waveCount * sizeof(RenderTexture2D));
     for (int i = 0; i < waveCount; i++) {
         //print waveform x of total waveforms
-        printf("\n\nLoading waveform %d of %d\n", i + 1, waveCount);
-        printf("Wave frame count: %i\n", (int) waves[i].frameCount);
-        printf("Wave sample rate: %i\n", (int) waves[i].sampleRate);
+        //printf("\n\nLoading waveform %d of %d\n", i + 1, waveCount);
+        //printf("Wave frame count: %i\n", (int) waves[i].frameCount);
+        //printf("Wave sample rate: %i\n", (int) waves[i].sampleRate);
         //print current file
-        printf("Current file: %s\n", filteredFiles[i]);
-
-
+        //printf("Current file: %s\n", filteredFiles[i]);
         waveforms[i] = LoadRenderTexture(
                 (int) roundf(((waves[i].frameCount) / waves[i].sampleRate) * 50), 500);
 
-        printf("Texture size: %d x %d\n", waveforms[i].texture.width, waveforms[i].texture.height);
+        //printf("Texture size: %d x %d\n", waveforms[i].texture.width, waveforms[i].texture.height);
 
         BeginTextureMode(waveforms[i]);
         ClearBackground(BLACK);
-        printf("Drawing DrawSong %d\n", i + 1);
+        //printf("Drawing DrawSong %d\n", i + 1);
         DrawSong(waves[i].data, (int) waves[i].frameCount, 50,
                  (int) waves[i].sampleRate);
-        printf("End DrawSong %d\n", i);
+        //printf("End DrawSong %d\n", i);
         EndTextureMode();
 
     }
@@ -422,14 +393,13 @@ void LoadAllWaveforms() {
 }
 
 void LoadFiles() {
-    printf("Loading files from directory\n");
+    //printf("Loading files from directory\n");
     directoryPath = tinyfd_selectFolderDialog("Select a directory", NULL);
-
     files = LoadDirectoryFiles(directoryPath);
 }
 
 void CountAudioFiles() {
-    printf("Counting audio files\n");
+    //printf("Counting audio files\n");
     waveCount = 0;
     for (int i = 0; i < files.count; i++) {
         if (IsFileExtension(files.paths[i], ".mp3") ||
@@ -501,9 +471,7 @@ void RefreshDataAllocation() {
     // Replace the old arrays with the new ones
     tracks = newTracks;
     waves = newWaves;
-
     filteredFiles = newFilteredFiles;
-
     waveCount = validCount;
 }
 
