@@ -274,7 +274,7 @@ int main(void) {
                       screenWidth * elapsedTime / totalDurations[currentTrack], 20, DARKGRAY); // Draw the progress bar
 
         DrawText(TextFormat("%2d%%", (int) (roundf(musicVolume * 20) / 20 * 100)),
-                 30, screenHeight/2, 20, LIGHTGRAY); // Draw the volume percentage
+                 30, screenHeight/2, 20, RAYWHITE); // Draw the volume percentage
 
         //Show volume as a vertical bar on the left side of the screen
         int height = (screenHeight - 200) * (musicVolume);
