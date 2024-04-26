@@ -209,7 +209,7 @@ int main(void) {
 
         if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) { // Start dragging the window
             if (CheckCollisionPointRec(mousePosition,
-                                       (Rectangle) {0, 0, (float) screenWidth, 20})) {
+                                       (Rectangle) {0, 0, (float) screenWidth, 40})) {
                 dragWindow = true;
                 panOffset = mousePosition;
             }
@@ -238,12 +238,16 @@ int main(void) {
         DrawLine(screenWidth / 2, 25, screenWidth / 2, screenHeight,
                  WHITE); // Draw the bar from top to bottom of the screen
 
-        DrawRectangleGradientV(0, 0, screenWidth, (screenHeight / 2) - 20, BLACK, BLANK); // Draw the top bar
+        DrawRectangleGradientV(0, 0, screenWidth, (screenHeight / 2) - 20, BLACK, BLANK); // Draw the top gradient
         DrawRectangleGradientV(0, (screenHeight / 2) + 20, screenWidth, screenHeight / 2, BLANK,
-                               BLACK); // Draw the bottom bar
+                               BLACK); // Draw the bottom gradient
+
+        //Draw a little header for the title
+        DrawRectangle(0, 0, screenWidth, 40, (Color) {10, 10, 10, 255});
         DrawText(
                 TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
-                textHeaderPosition, 10, 20, DARKGRAY); // Draw the title of the song
+                textHeaderPosition, 10, 20, LIGHTGRAY); // Draw the title of the song
+
         DrawText(TextFormat("Duration: %02d:%02d", (int) totalDurations[currentTrack] / 60,
                             (int) totalDurations[currentTrack] % 60),
                  screenWidth -
@@ -251,25 +255,30 @@ int main(void) {
                                         (int) totalDurations[currentTrack] / 60,
                                         (int) totalDurations[currentTrack] % 60),
                              20) -
-                 10,
-                 screenHeight - 50, 20, DARKGRAY); // Draw the duration of the song
+                 20,
+                 screenHeight - 50, 20, LIGHTGRAY); // Draw the duration of the song
+
         DrawText(TextFormat("Time: %02d:%02d", (int) elapsedTime / 60,
                             (int) elapsedTime % 60),
-                 10, screenHeight - 50, 20, DARKGRAY); // Draw the current time of the song
+                 20, screenHeight - 50, 20, LIGHTGRAY); // Draw the current time of the song
         // Draw index x of total
-        DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 10,
-                 screenHeight - 80, 20, DARKGRAY); // Draw the current track index
+        DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 20,
+                 screenHeight - 80, 20, LIGHTGRAY); // Draw the current track index
         if (totalDurations[currentTrack] - elapsedTime < 30.0f) {
             DrawText(TextFormat(
                              "Next: %s",
                              GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
-                     nextSongTextPosition, 30, 20, DARKGRAY); // Draw the next song text header
+                     nextSongTextPosition, 30, 20, LIGHTGRAY); // Draw the next song text header
         }
         DrawRectangle(0, screenHeight - 20,
                       screenWidth * elapsedTime / totalDurations[currentTrack], 20, DARKGRAY); // Draw the progress bar
 
-        DrawText(TextFormat("Volume: %02d%%", (int) (roundf(musicVolume * 20) / 20 * 100)),
-                 10, screenHeight - 110, 20, DARKGRAY); // Draw the volume percentage
+        DrawText(TextFormat("%2d%%", (int) (roundf(musicVolume * 20) / 20 * 100)),
+                 30, screenHeight/2, 20, LIGHTGRAY); // Draw the volume percentage
+
+        //Show volume as a vertical bar on the left side of the screen
+        int height = (screenHeight - 200) * (musicVolume);
+        DrawRectangle(5, (screenHeight-100) - height, 10, height, LIGHTGRAY);
 
         EndDrawing();
     }
