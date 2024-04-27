@@ -10,7 +10,9 @@
 #include "raymath.h"
 #include "semaphore.h"
 
+
 #define MAX_LOADING_THREADS 4
+#define KATSUGRAY (Color){ 10, 10, 10, 255 }
 
 
 // Function Declarations --------------------------------------
@@ -101,7 +103,6 @@ Rectangle volumeLevel;
 
 Rectangle progressBar;
 Rectangle progressLevel;
-
 
 
 int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
@@ -207,8 +208,8 @@ int main(void) { // Main function
                 //Progress bar logic
 
                 float progress = ((float) screenWidth * elapsedTime) / totalDurations[currentTrack];
-                progressBar = (Rectangle){0, screenHeight - 20, screenWidth, 20};
-                progressLevel = (Rectangle){0, screenHeight - 20, progress, 20};
+                progressBar = (Rectangle) {0, screenHeight - 20, screenWidth, 20};
+                progressLevel = (Rectangle) {0, screenHeight - 20, progress, 20};
 
                 //END OF UI LOGIC------------------------------------------------------------------------------------
 
@@ -309,7 +310,7 @@ void DrawSong(const float *waveData, int numSamples, int drawFactor,
                 (Vector2) {(float) i * (float) drawFactor / (float) sampleRate / 2 * 50,
                            (float) screenHeight / 2 - waveData[i * drawFactor] * 100};
     }
-    DrawLineStrip(points, newNumSamples, DARKGRAY);
+    DrawLineStrip(points, newNumSamples, (Color) {100, 100, 100, 255});
     free(points); // Don't forget to free the allocated memory*/
 }
 
@@ -363,7 +364,7 @@ void DrawAllWaveforms() {
         //Draw Progress bar
         DrawRectangle(150, screenHeight / 2 + 20,
                       (screenWidth - 300) * i / waveCount, 20,
-                      DARKGRAY); // Draw the progress bar
+                      WHITE); // Draw the progress bar
 
     }
 
@@ -549,7 +550,7 @@ void HandleInputs() {
 
     if (CheckCollisionPointRec(GetMousePosition(), progressBar) && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
         // Calculate the new elapsed time based on the mouse's x-coordinate
-        float newElapsedTime = GetMouseX() / (float)screenWidth * totalDurations[currentTrack];
+        float newElapsedTime = GetMouseX() / (float) screenWidth * totalDurations[currentTrack];
         // Seek in the music stream to the new elapsed time
         elapsedTime = newElapsedTime;
         SeekMusicStream(tracks[currentTrack], elapsedTime);
@@ -586,7 +587,7 @@ void UpdateTitles() {
 void DrawUI() {
 
     DrawLine(screenWidth / 2, 25, screenWidth / 2, screenHeight,
-             WHITE); // Draw the bar from top to bottom of the screen
+             WHITE); // Draw the middle bar
 
     DrawRectangleGradientV(0, 0, screenWidth, (screenHeight / 2) - 20, BLACK,
                            BLANK); // Draw the top gradient
@@ -594,29 +595,23 @@ void DrawUI() {
                            BLACK); // Draw the bottom gradient
 
     //Draw a little header for the title
-    DrawRectangle(0, 0, screenWidth, 40, (Color) {10, 10, 10, 255});
+    DrawRectangle(0, 0, screenWidth, 40, KATSUGRAY);
+
     DrawText(
             TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
             textHeaderPosition, 10, 20, LIGHTGRAY); // Draw the title of the song
 
-    DrawText(TextFormat("Duration: %02d:%02d", (int) totalDurations[currentTrack] / 60,
-                        (int) totalDurations[currentTrack] % 60),
-             screenWidth -
-             MeasureText(TextFormat("Duration: %02d:%02d",
-                                    (int) totalDurations[currentTrack] / 60,
-                                    (int) totalDurations[currentTrack] % 60),
-                         20) -
-             20,
-             screenHeight - 50, 20, LIGHTGRAY); // Draw the duration of the song
+    DrawText(TextFormat("%02d:%02d", (int) totalDurations[currentTrack] / 60,
+                        (int) totalDurations[currentTrack] % 60), screenWidth - 60, screenHeight - 50, 20,
+             LIGHTGRAY); // Draw the duration of the song
 
-    DrawText(TextFormat("Time: %02d:%02d", (int) elapsedTime / 60,
+    DrawText(TextFormat("%02d:%02d", (int) elapsedTime / 60,
                         (int) elapsedTime % 60),
-             20, screenHeight - 50, 20, LIGHTGRAY); // Draw the current time of the song
+             10, screenHeight - 50, 20, LIGHTGRAY); // Draw the current time of the song
 
 
 
-    // Draw index x of total
-    DrawText(TextFormat("Track %d of %d", currentTrack + 1, waveCount), 20,
+    DrawText(TextFormat("%d of %d", currentTrack + 1, waveCount), 10,
              screenHeight - 80, 20, LIGHTGRAY); // Draw the current track index
 
 
@@ -631,12 +626,12 @@ void DrawUI() {
 
 
     // Show volume as a vertical bar on the left side of the screen
-    DrawRectangleRec(volumeBar, (Color) {10, 10, 10, 255});
+    DrawRectangleRec(volumeBar, KATSUGRAY);
     DrawRectangleRec(volumeLevel, LIGHTGRAY);
 
     // Show progress as a horizontal bar on the bottom of the screen
 
-    DrawRectangleRec(progressBar, (Color) {10, 10, 10, 255});
+    DrawRectangleRec(progressBar, KATSUGRAY);
     DrawRectangleRec(progressLevel, DARKGRAY);
 
 
