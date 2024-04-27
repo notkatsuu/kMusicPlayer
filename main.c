@@ -128,9 +128,9 @@ Vector2 mousePosition = {0};
 Vector2 panOffset;
 
 //UI ELEMENTS-------------------------------------------------------------------------
-Rectangle volumeBar = {((float)screenWidth / 2) + 80, ((float)screenHeight / 2) + 180, 80, 10};
+Rectangle volumeBar = {((float) screenWidth / 2) + 80, ((float) screenHeight / 2) + 180, 80, 10};
 
-Rectangle progressBar = {0, (float)screenHeight - 20, (float)screenWidth, 20};
+Rectangle progressBar = {0, (float) screenHeight - 20, (float) screenWidth, 20};
 
 
 int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
@@ -140,7 +140,10 @@ char **filteredFiles;
 
 int main(void) { // Main function
 
+    LoadFiles();
+
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
+    SetConfigFlags(FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "kMusicPlayer");
 
     GUINextTheme();
@@ -400,8 +403,10 @@ void DrawAllWaveforms() {
 }
 
 void LoadFiles() {
-    //printf("Loading files from directory\n");
-    directoryPath = tinyfd_selectFolderDialog("Select a directory", NULL);
+    directoryPath = tinyfd_selectFolderDialog("Select a directory", "C:\\Users\\<username>\\Music");
+    if (directoryPath == NULL) {
+        exit(0);
+    }
     files = LoadDirectoryFiles(directoryPath);
 }
 
@@ -508,7 +513,6 @@ void SeekInMusicStream(const int *index, float seconds) {
 
 void *LoadFilesThread() {
 
-    LoadFiles(); // Load files from directory
     CountAudioFiles();
     LoadAllMusic(); // Load all music from the files
     RefreshDataAllocation(); // Refresh the memory allocation for the dinamic arrays, removing the corrupted files
@@ -618,36 +622,41 @@ void DrawUI() {
                            BLACK); // Draw the bottom gradient
 
     //Draw a little header for the title
-    GuiDrawRectangle((Rectangle) {0, 0, (float)screenWidth, (float)currentTextSize*1.5f}, 1, BLANK, (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)), 0.1f)));
+    GuiDrawRectangle((Rectangle) {0, 0, (float) screenWidth, (float) currentTextSize * 1.5f}, 1, BLANK,
+                     (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)), 0.1f)));
 
 
     //Now with GuiDrawText
     GuiDrawText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack]),
                            20),
-                (Rectangle) {(float)textHeaderPosition, 5, (float)MeasureText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])), currentTextSize), (float)currentTextSize},
+                (Rectangle) {(float) textHeaderPosition, 5,
+                             (float) MeasureText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])),
+                                                 currentTextSize), (float) currentTextSize},
                 TEXT_ALIGN_LEFT,
                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
 
     GuiDrawText(TextFormat("%02d:%02d", (int) elapsedTime / 60, (int) elapsedTime % 60),
-                (Rectangle) {20, (float)screenHeight - 65, (float)MeasureText("00:00", currentTextSize), (float)currentTextSize},
+                (Rectangle) {20, (float) screenHeight - 65, (float) MeasureText("00:00", currentTextSize),
+                             (float) currentTextSize},
                 TEXT_ALIGN_LEFT,
                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
     GuiDrawText(TextFormat("%02d:%02d", (int) totalDurations[currentTrack] / 60,
                            (int) totalDurations[currentTrack] % 60),
-                (Rectangle) {(float)screenWidth - 20 - (float)MeasureText("00:00", currentTextSize), (float)screenHeight - 65,
-                             (float)MeasureText("00:00", currentTextSize), (float)currentTextSize},
+                (Rectangle) {(float) screenWidth - 20 - (float) MeasureText("00:00", currentTextSize),
+                             (float) screenHeight - 65,
+                             (float) MeasureText("00:00", currentTextSize), (float) currentTextSize},
                 TEXT_ALIGN_RIGHT,
                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
 
     if (totalDurations[currentTrack] - elapsedTime < 30.0f) {
-        GuiLabel((Rectangle) {(float)nextSongTextPosition, 30,
-                              (float)MeasureText(
+        GuiLabel((Rectangle) {(float) nextSongTextPosition, 30,
+                              (float) MeasureText(
                                       TextFormat("Next: %s",
                                                  GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
-                                      currentTextSize), (float)currentTextSize},
+                                      currentTextSize), (float) currentTextSize},
                  TextFormat("Next: %s", GetFileName(filteredFiles[(currentTrack + 1) % waveCount])));
     }
 
@@ -664,7 +673,7 @@ void DrawUI() {
     DrawRectangle((screenWidth / 2) - 60, screenHeight - 55, 120, 30, KATSUGRAY);
 
     //Draw the play/pause button in the middle of the latest rectangle
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 20, (float)screenHeight - 55, 40, 30}, playButtonText)) {
+    if (GuiButton((Rectangle) {((float) screenWidth / 2) - 20, (float) screenHeight - 55, 40, 30}, playButtonText)) {
         if (playing) {
             PauseMusicStream(tracks[currentTrack]);
             playing = false;
@@ -676,13 +685,14 @@ void DrawUI() {
         }
     }
     //Draw the next song button
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) + 20, (float)screenHeight - 55, 40, 30}, "#131#")) {
+    if (GuiButton((Rectangle) {((float) screenWidth / 2) + 20, (float) screenHeight - 55, 40, 30}, "#134#")) {
         PlayNextTrack(&currentTrack);
+        playing = true;
         elapsedTime = 0.0f;
     }
 
     //Draw the before song button
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 60, (float)screenHeight - 55, 40, 30}, "#129#")) {
+    if (GuiButton((Rectangle) {((float) screenWidth / 2) - 60, (float) screenHeight - 55, 40, 30}, "#129#")) {
         StopMusicStream(tracks[currentTrack]);
         currentTrack = (currentTrack - 1) % waveCount;
         if (currentTrack < 0) {
@@ -693,49 +703,47 @@ void DrawUI() {
     }
 
     //Draw button to change to the next theme
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 90, (float)screenHeight - 50, 20, 20}, "#12#")) {
+    if (GuiButton((Rectangle) {((float) screenWidth / 2) - 90, (float) screenHeight - 50, 20, 20}, "#12#")) {
         currentTheme = (currentTheme + 1) % (sizeof(themeFunctions) / sizeof(*themeFunctions));
         GUINextTheme();
     }
 
 
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 120, (float)screenHeight - 50, 20, 20}, "#191#")) {
+    if (GuiButton((Rectangle) {((float) screenWidth / 2) - 120, (float) screenHeight - 50, 20, 20}, "#191#")) {
 
         infoWindow = !infoWindow;
 
     }
 
-    if (infoWindow){
-        if(!GuiWindowBox((Rectangle) {screenWidth/2 - 300, screenHeight/2 - 200, 600, 400}, NULL)){
+    if (infoWindow) {
+        if (!GuiWindowBox((Rectangle) {screenWidth / 2 - 300, screenHeight / 2 - 200, 600, 400}, NULL)) {
 
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 160, 580, 30}, "Track Info:");
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 120, 580, 30}, TextFormat("#30# Title: %s", GetFileName(filteredFiles[currentTrack])));
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 90, 580, 30}, TextFormat("#124# Duration: %02d:%02d", (int) totalDurations[currentTrack] / 60,
-                           (int) totalDurations[currentTrack] % 60));
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 60, 580, 30}, TextFormat("#14# Sample Rate: %d", waves[currentTrack].sampleRate));
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 30, 580, 30}, TextFormat("#175# Channels: %d", waves[currentTrack].channels));
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2, 580, 30}, TextFormat("#33# Sample Size: %d", waves[currentTrack].sampleSize));
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 + 30, 580, 30}, TextFormat("#97# Frame Count: %d", waves[currentTrack].frameCount));
-
+            //Track info
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 - 160, 580, 30}, "Track Info:");
+            //Title
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 - 120, 580, 30},
+                     TextFormat("#30# Title: %s", GetFileName(filteredFiles[currentTrack])));
+            //Duration
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 - 90, 580, 30},
+                     TextFormat("#124# Duration: %02d:%02d", (int) totalDurations[currentTrack] / 60,
+                                (int) totalDurations[currentTrack] % 60));
+            //Sample Rate
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 - 60, 580, 30},
+                     TextFormat("#14# Sample Rate: %d", waves[currentTrack].sampleRate));
+            //Channels
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 - 30, 580, 30},
+                     TextFormat("#175# Channels: %d", waves[currentTrack].channels));
+            //Sample Size
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2, 580, 30},
+                     TextFormat("#33# Sample Size: %d", waves[currentTrack].sampleSize));
+            //Frame Count
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 + 30, 580, 30},
+                     TextFormat("#97# Frame Count: %d", waves[currentTrack].frameCount));
             //Waveform texture info
-
-            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 + 90, 580, 30}, TextFormat("#69# Waveform Texture Size: %dx%d", waveforms[currentTrack].texture.width, waveforms[currentTrack].texture.height));
-
-
-
-
-
-
-
-
-        } else{
+            GuiLabel((Rectangle) {screenWidth / 2 - 290, screenHeight / 2 + 90, 580, 30},
+                     TextFormat("#69# Waveform Texture Size: %dx%d", waveforms[currentTrack].texture.width,
+                                waveforms[currentTrack].texture.height));
+        } else {
             infoWindow = false;
         }
 
