@@ -9,6 +9,7 @@
 #include "raygui.h"
 #include "raymath.h"
 #include "semaphore.h"
+#include <direct.h>
 
 //Include styles
 #include "styles/style_dark.h"
@@ -23,6 +24,7 @@
 #define KATSUGRAY (Color){ 10, 10, 10, 255 }
 #define PLAYBUTTON "#131#"
 #define PAUSEBUTTON "#132#"
+#define PATH_FILE "path.txt"
 
 
 // Function Declarations --------------------------------------
@@ -55,6 +57,10 @@ void UpdateTitles();
 void DrawUI();
 
 Color IntToColor(int value);
+
+void refreshDirectory();
+
+void createDirectories();
 
 
 typedef enum {
@@ -95,7 +101,7 @@ int currentTrack = 0; // To track the song that's playing
 bool dragWindow = false;
 bool exitWindow = false;
 
-char const *directoryPath;
+char *directoryPath;
 
 Wave *waves; //Array for storing wave data
 Music *tracks; //Array for storing music tracks
@@ -129,7 +135,6 @@ Vector2 panOffset;
 
 //UI ELEMENTS-------------------------------------------------------------------------
 Rectangle volumeBar = {((float) screenWidth / 2) + 80, ((float) screenHeight / 2) + 180, 80, 10};
-
 Rectangle progressBar = {0, (float) screenHeight - 20, (float) screenWidth, 20};
 
 
@@ -143,7 +148,7 @@ int main(void) { // Main function
     LoadFiles();
 
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
-    SetConfigFlags(FLAG_WINDOW_TOPMOST);
+    //SetConfigFlags(FLAG_WINDOW_TOPMOST);
     InitWindow(screenWidth, screenHeight, "kMusicPlayer");
 
     GUINextTheme();
@@ -173,6 +178,7 @@ int main(void) { // Main function
         switch (currentState) {
             case LOADING_FILES:
                 if (firstStart) {
+                    createDirectories();
                     pthread_create(&loadingThread, NULL, LoadFilesThread, NULL);
                     firstStart = false;
                 }
@@ -252,6 +258,7 @@ int main(void) { // Main function
 
         switch (currentState) {
             case LOADING_FILES:
+
                 DrawText("Loading music files...",
                          screenWidth / 2 - MeasureText("Loading music files...", 20) / 2,
                          screenHeight / 2 - 20, 20, RAYWHITE); // Draw the loading text
@@ -384,8 +391,16 @@ void *LoadMusic(void *arg) { // Thread function to load music
 void DrawAllWaveforms() {
     waveforms = malloc(waveCount * sizeof(RenderTexture2D));
     for (int i = 0; i < waveCount; i++) {
+
         waveforms[i] = LoadRenderTexture(
                 (int) roundf((float) ((float) (waves[i].frameCount) / (float) waves[i].sampleRate) * 50), 500);
+
+        if (FileExists(TextFormat("cache/waveforms/waveform_%s.png", GetFileName(filteredFiles[i])))) {
+            waveforms[i].texture = LoadTextureFromImage(
+                    LoadImage(TextFormat("cache/waveforms/waveform_%s.png", GetFileName(filteredFiles[i]))));
+            continue;
+        }
+
         BeginTextureMode(waveforms[i]);
         DrawSong(waves[i].data, (int) waves[i].frameCount, 50,
                  (int) waves[i].sampleRate);
@@ -396,16 +411,35 @@ void DrawAllWaveforms() {
                       (screenWidth - 300) * i / waveCount, 20,
                       WHITE); // Draw the progress bar
 
+
+        ExportImage(LoadImageFromTexture(waveforms[i].texture),
+                    TextFormat("cache/waveforms/waveform_%s.png", GetFileName(filteredFiles[i])));
+
     }
 
+
+    //canviar de lloc
     currentState = PLAYING;
+    elapsedTime = 0.0f;
+    playing = false;
 
 }
 
 void LoadFiles() {
-    directoryPath = tinyfd_selectFolderDialog("Select a directory", "C:\\Users\\<username>\\Music");
-    if (directoryPath == NULL) {
-        exit(0);
+
+    FILE *file = fopen(PATH_FILE, "r");
+    if (file != NULL) {
+        char path[1024];
+        fgets(path, 1024, file);
+        directoryPath = malloc(strlen(path) * sizeof(char));
+        strcpy(directoryPath, path);
+        fclose(file);
+    } else {
+
+        refreshDirectory();
+        file = fopen(PATH_FILE, "w");
+        fprintf(file, "%s", directoryPath);
+        fclose(file);
     }
     files = LoadDirectoryFiles(directoryPath);
 }
@@ -579,8 +613,6 @@ void HandleInputs() {
         elapsedTime = newElapsedTime;
         SeekMusicStream(tracks[currentTrack], elapsedTime);
     }
-
-
 }
 
 void UpdateTitles() {
@@ -746,10 +778,16 @@ void DrawUI() {
         } else {
             infoWindow = false;
         }
-
     }
 
+    //button to refresh the directory
 
+    if (GuiButton((Rectangle) {screenWidth - 30, 50, 30, 30}, "#3#")) {
+        refreshDirectory();
+        LoadFiles();
+        pthread_create(&loadingThread, NULL, LoadFilesThread, NULL);
+        currentState = LOADING_FILES;
+    }
 }
 
 
@@ -760,5 +798,26 @@ Color IntToColor(int value) {
     color.b = (unsigned char) ((value >> 8) & 0xFF);
     color.a = (unsigned char) (value & 0xFF);
     return color;
+}
+
+void refreshDirectory() {
+    directoryPath = (char *) tinyfd_selectFolderDialog("Select a folder with audio files", NULL);
+    if (directoryPath == NULL) {
+        exit(0);
+    }
+    FILE *file = fopen(PATH_FILE, "w");
+    fprintf(file, "%s", directoryPath);
+    fclose(file);
+
+    waveformLoaded = false;
+}
+
+void createDirectories(){
+    if (!DirectoryExists("cache")) {
+        mkdir("cache");
+    }
+    if (!DirectoryExists("cache/waveforms")) {
+        mkdir("cache/waveforms");
+    }
 }
 
