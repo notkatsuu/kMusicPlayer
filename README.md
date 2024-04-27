@@ -49,6 +49,17 @@ It will load all music files in the selected and will store their waveforms in t
 #### The application uses RayGui and supports a variety of themes to customize the look and feel of the interface. 
 #### You can switch between themes by clicking the theme button in the top-right corner of the window. 
 
+| Dark Theme | Candy Theme |
+|:---:|:---:|
+| ![Dark Theme](images/dark_theme.png "Dark Theme") | ![Candy Theme](images/candy_theme.png "Candy Theme") |
+
+| Cyber Theme | Jungle Theme |
+|:---:|:---:|
+| ![Cyber Theme](images/cyber_theme.png "Cyber Theme") | ![Jungle Theme](images/jungle_theme.png "Jungle Theme") |
+
+| Lavanda Theme | Terminal Theme |
+|:---:|:---:|
+| ![Lavanda Theme](images/lavanda_theme.png "Lavanda Theme") | ![Terminal Theme](images/terminal_theme.png "Terminal Theme") |
 
 # Building from Source
 

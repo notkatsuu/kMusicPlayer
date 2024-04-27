@@ -658,7 +658,7 @@ void DrawUI() {
                      (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)), 0.1f)));
 
 
-    //Now with GuiDrawText
+
     GuiDrawText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack]),
                            20),
                 (Rectangle) {(float) textHeaderPosition, 5,
