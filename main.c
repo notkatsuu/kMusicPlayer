@@ -7,6 +7,7 @@
 
 #include "pthread.h"
 #include "raygui.h"
+#include "raymath.h"
 #include "semaphore.h"
 
 #define MAX_LOADING_THREADS 4
@@ -35,7 +36,7 @@ void SeekInMusicStream(const int *index, float seconds);
 
 void *LoadFilesThread();
 
-void ManageInputs();
+void HandleInputs();
 
 void UpdateTitles();
 
@@ -94,6 +95,15 @@ ViewportType currentViewport = WAVEFORM;
 Vector2 mousePosition = {0};
 Vector2 panOffset;
 
+//UI ELEMENTS-------------------------------------------------------------------------
+Rectangle volumeBar;
+Rectangle volumeLevel;
+
+Rectangle progressBar;
+Rectangle progressLevel;
+
+
+
 int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
 int nextSongTextPosition = screenWidth; //Starting position for the next song text
 
@@ -108,7 +118,6 @@ int main(void) { // Main function
 
     SetTargetFPS(144); // Set our game to run at 60 frames-per-second
     sem_init(&sem_fileLoader, 0, MAX_LOADING_THREADS); //Set up semaphore for file loading
-
 
     Vector2 windowPosition = {500, 200}; // Set window position on startup
     SetWindowPosition((int) windowPosition.x, (int) windowPosition.y);
@@ -138,7 +147,7 @@ int main(void) { // Main function
 
             case PLAYING:
 
-                ManageInputs();
+                HandleInputs();
 
                 if (playing) {
                     elapsedTime += GetFrameTime(); // Update the elapsed time
@@ -165,6 +174,13 @@ int main(void) { // Main function
 
                 UpdateTitles();
 
+
+
+
+                //UI LOGIC ----------------------------------------------------------------------------------------
+
+                // Dragging the window logic
+
                 if (IsMouseButtonPressed(MOUSE_LEFT_BUTTON) && !dragWindow) { // Start dragging the window
                     if (CheckCollisionPointRec(mousePosition,
                                                (Rectangle) {0, 0, (float) screenWidth, 40})) {
@@ -172,7 +188,6 @@ int main(void) { // Main function
                         panOffset = mousePosition;
                     }
                 }
-
                 if (dragWindow) { // While dragging the window
                     windowPosition.x += mousePosition.x - panOffset.x;
                     windowPosition.y += mousePosition.y - panOffset.y;
@@ -180,6 +195,22 @@ int main(void) { // Main function
                     if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
                         dragWindow = false;
                 }
+
+
+
+                //Volume bar logic
+
+                float height = (float) (screenHeight - 200) * (musicVolume);
+                volumeBar = (Rectangle) {10, 100, 15, screenHeight - 200};
+                volumeLevel = (Rectangle) {10, (screenHeight - 100) - (int) height, 15, (int) height};
+
+                //Progress bar logic
+
+                float progress = ((float) screenWidth * elapsedTime) / totalDurations[currentTrack];
+                progressBar = (Rectangle){0, screenHeight - 20, screenWidth, 20};
+                progressLevel = (Rectangle){0, screenHeight - 20, progress, 20};
+
+                //END OF UI LOGIC------------------------------------------------------------------------------------
 
                 break;
 
@@ -457,7 +488,7 @@ void *LoadFilesThread() {
     return NULL;
 }
 
-void ManageInputs() {
+void HandleInputs() {
 
     if (IsKeyPressed(KEY_P)) { // Play next track
         PlayNextTrack(&currentTrack);
@@ -506,6 +537,25 @@ void ManageInputs() {
     if (IsKeyPressed(KEY_ESCAPE)) {
         exit(0);
     }
+
+    // UI CONTROL HANDLING -----------------------------------------------------------------------------------
+    if (CheckCollisionPointRec(GetMousePosition(), volumeBar) && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        // Calculate the new volume based on the mouse's y-coordinate
+        float newVolume = ((screenHeight - 100) - GetMouseY()) / (float) (screenHeight - 200);
+        // Clamp the new volume to the range [0, 1]
+        musicVolume = Clamp(newVolume, 0.0f, 1.0f);
+        SetMasterVolume(powf(musicVolume, 2));
+    }
+
+    if (CheckCollisionPointRec(GetMousePosition(), progressBar) && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
+        // Calculate the new elapsed time based on the mouse's x-coordinate
+        float newElapsedTime = GetMouseX() / (float)screenWidth * totalDurations[currentTrack];
+        // Seek in the music stream to the new elapsed time
+        elapsedTime = newElapsedTime;
+        SeekMusicStream(tracks[currentTrack], elapsedTime);
+    }
+
+
 }
 
 void UpdateTitles() {
@@ -534,7 +584,7 @@ void UpdateTitles() {
 }
 
 void DrawUI() {
-    
+
     DrawLine(screenWidth / 2, 25, screenWidth / 2, screenHeight,
              WHITE); // Draw the bar from top to bottom of the screen
 
@@ -578,15 +628,18 @@ void DrawUI() {
     }
 
 
-    float progress = ((float)screenWidth * elapsedTime) / totalDurations[currentTrack];
-    DrawRectangle(0, screenHeight - 20, (int)progress, 20, DARKGRAY); // Draw the progress bar
 
-    DrawText(TextFormat("%2d%%", (int) (roundf(musicVolume * 20) / 20 * 100)),
-             30, screenHeight / 2, 20, RAYWHITE); // Draw the volume percentage
 
-    //Show volume as a vertical bar on the left side of the screen
-    float height = (float) (screenHeight - 200) * (musicVolume);
-    DrawRectangle(5, (screenHeight - 100) - (int) height, 10, (int) height, LIGHTGRAY);
+    // Show volume as a vertical bar on the left side of the screen
+    DrawRectangleRec(volumeBar, (Color) {10, 10, 10, 255});
+    DrawRectangleRec(volumeLevel, LIGHTGRAY);
+
+    // Show progress as a horizontal bar on the bottom of the screen
+
+    DrawRectangleRec(progressBar, (Color) {10, 10, 10, 255});
+    DrawRectangleRec(progressLevel, DARKGRAY);
+
+
 }
 
 
