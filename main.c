@@ -126,9 +126,9 @@ Vector2 mousePosition = {0};
 Vector2 panOffset;
 
 //UI ELEMENTS-------------------------------------------------------------------------
-Rectangle volumeBar = {(screenWidth / 2) + 80, (screenHeight / 2) + 180, 80, 10};
+Rectangle volumeBar = {((float)screenWidth / 2) + 80, ((float)screenHeight / 2) + 180, 80, 10};
 
-Rectangle progressBar = {0, screenHeight - 20, screenWidth, 20};
+Rectangle progressBar = {0, (float)screenHeight - 20, (float)screenWidth, 20};
 
 
 int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
@@ -516,18 +516,13 @@ void *LoadFilesThread() {
 
 void HandleInputs() {
 
-    if (IsKeyPressed(KEY_P)) { // Play next track
-        PlayNextTrack(&currentTrack);
-        elapsedTime = 0.0f;
-        playing = true;
-    }
 
     // if press esc close window
     if (IsKeyPressed(KEY_ESCAPE)) {
         exitWindow = true;
     }
 
-    // advance 5 seconds when scrolling up with mosue wheel
+    // advance 5 seconds when scrolling up with mouse wheel
     if (IsKeyPressed(KEY_RIGHT) || GetMouseWheelMove() > 0.0f) {
         SeekInMusicStream(&currentTrack, 5.0f);
     }
@@ -621,42 +616,42 @@ void DrawUI() {
                            BLACK); // Draw the bottom gradient
 
     //Draw a little header for the title
-    GuiDrawRectangle((Rectangle) {0, 0, screenWidth, currentTextSize*1.5f}, 1, BLANK, (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)), 0.1f)));
+    GuiDrawRectangle((Rectangle) {0, 0, (float)screenWidth, (float)currentTextSize*1.5f}, 1, BLANK, (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)), 0.1f)));
 
 
     //Now with GuiDrawText
     GuiDrawText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack]),
                            20),
-                (Rectangle) {textHeaderPosition, 5, MeasureText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])), currentTextSize), currentTextSize},
+                (Rectangle) {(float)textHeaderPosition, 5, (float)MeasureText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack])), currentTextSize), (float)currentTextSize},
                 TEXT_ALIGN_LEFT,
                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
 
     GuiDrawText(TextFormat("%02d:%02d", (int) elapsedTime / 60, (int) elapsedTime % 60),
-                (Rectangle) {20, screenHeight - 65, MeasureText("00:00", currentTextSize), currentTextSize},
+                (Rectangle) {20, (float)screenHeight - 65, (float)MeasureText("00:00", currentTextSize), (float)currentTextSize},
                 TEXT_ALIGN_LEFT,
                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
     GuiDrawText(TextFormat("%02d:%02d", (int) totalDurations[currentTrack] / 60,
                            (int) totalDurations[currentTrack] % 60),
-                (Rectangle) {screenWidth - 20 - MeasureText("00:00", currentTextSize), screenHeight - 65,
-                             MeasureText("00:00", currentTextSize), currentTextSize},
+                (Rectangle) {(float)screenWidth - 20 - (float)MeasureText("00:00", currentTextSize), (float)screenHeight - 65,
+                             (float)MeasureText("00:00", currentTextSize), (float)currentTextSize},
                 TEXT_ALIGN_RIGHT,
                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
 
     if (totalDurations[currentTrack] - elapsedTime < 30.0f) {
-        GuiLabel((Rectangle) {nextSongTextPosition, 30,
-                              MeasureText(
+        GuiLabel((Rectangle) {(float)nextSongTextPosition, 30,
+                              (float)MeasureText(
                                       TextFormat("Next: %s",
                                                  GetFileName(filteredFiles[(currentTrack + 1) % waveCount])),
-                                      currentTextSize), currentTextSize},
+                                      currentTextSize), (float)currentTextSize},
                  TextFormat("Next: %s", GetFileName(filteredFiles[(currentTrack + 1) % waveCount])));
     }
 
 
 
-    // Show progress as a horizontal bar on the bottom of the screen
+    // Show progress as a horizontal bar at the bottom of the screen
 
     GuiSliderBar(volumeBar, NULL, "#122#", &musicVolume, 0.0f, 1.0f);
 
@@ -667,7 +662,7 @@ void DrawUI() {
     DrawRectangle((screenWidth / 2) - 60, screenHeight - 55, 120, 30, KATSUGRAY);
 
     //Draw the play/pause button in the middle of the latest rectangle
-    if (GuiButton( (Rectangle) {(screenWidth / 2) - 20, screenHeight - 55, 40, 30}, playButtonText)) {
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 20, (float)screenHeight - 55, 40, 30}, playButtonText)) {
         if (playing) {
             PauseMusicStream(tracks[currentTrack]);
             playing = false;
@@ -679,13 +674,13 @@ void DrawUI() {
         }
     }
     //Draw the next song button
-    if (GuiButton( (Rectangle) {(screenWidth / 2) +20, screenHeight - 55, 40, 30}, "#134#")) {
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) +20, (float)screenHeight - 55, 40, 30}, "#134#")) {
         PlayNextTrack(&currentTrack);
         elapsedTime = 0.0f;
     }
 
     //Draw the before song button
-    if (GuiButton( (Rectangle) {(screenWidth / 2) - 60, screenHeight - 55, 40, 30}, "#129#")) {
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 60, (float)screenHeight - 55, 40, 30}, "#129#")) {
         StopMusicStream(tracks[currentTrack]);
         currentTrack = (currentTrack - 1) % waveCount;
         if (currentTrack < 0) {
@@ -693,6 +688,12 @@ void DrawUI() {
         }
         PlayMusicStream(tracks[currentTrack]);
         elapsedTime = 0.0f;
+    }
+
+    //Draw button to change to the next theme
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 100, (float)screenHeight - 50, 40, 20}, "#130#")) {
+        currentTheme = (currentTheme + 1) % (sizeof(themeFunctions) / sizeof(*themeFunctions));
+        GUINextTheme();
     }
 
 }
