@@ -118,6 +118,8 @@ typedef struct {
 
 PlayerState currentState = LOADING_FILES;
 ViewportType currentViewport = WAVEFORM;
+bool infoWindow = false;
+
 int currentTheme = 0;
 int currentTextSize;
 char *playButtonText = PLAYBUTTON;
@@ -651,7 +653,7 @@ void DrawUI() {
 
 
 
-    // Show progress as a horizontal bar at the bottom of the screen
+    // Draw the volume bar
 
     GuiSliderBar(volumeBar, NULL, "#122#", &musicVolume, 0.0f, 1.0f);
 
@@ -674,7 +676,7 @@ void DrawUI() {
         }
     }
     //Draw the next song button
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) +20, (float)screenHeight - 55, 40, 30}, "#134#")) {
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) + 20, (float)screenHeight - 55, 40, 30}, "#131#")) {
         PlayNextTrack(&currentTrack);
         elapsedTime = 0.0f;
     }
@@ -691,10 +693,54 @@ void DrawUI() {
     }
 
     //Draw button to change to the next theme
-    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 100, (float)screenHeight - 50, 40, 20}, "#130#")) {
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 90, (float)screenHeight - 50, 20, 20}, "#12#")) {
         currentTheme = (currentTheme + 1) % (sizeof(themeFunctions) / sizeof(*themeFunctions));
         GUINextTheme();
     }
+
+
+    if (GuiButton( (Rectangle) {((float)screenWidth / 2) - 120, (float)screenHeight - 50, 20, 20}, "#191#")) {
+
+        infoWindow = !infoWindow;
+
+    }
+
+    if (infoWindow){
+        if(!GuiWindowBox((Rectangle) {screenWidth/2 - 300, screenHeight/2 - 200, 600, 400}, NULL)){
+
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 160, 580, 30}, "Track Info:");
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 120, 580, 30}, TextFormat("#30# Title: %s", GetFileName(filteredFiles[currentTrack])));
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 90, 580, 30}, TextFormat("#124# Duration: %02d:%02d", (int) totalDurations[currentTrack] / 60,
+                           (int) totalDurations[currentTrack] % 60));
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 60, 580, 30}, TextFormat("#14# Sample Rate: %d", waves[currentTrack].sampleRate));
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 - 30, 580, 30}, TextFormat("#175# Channels: %d", waves[currentTrack].channels));
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2, 580, 30}, TextFormat("#33# Sample Size: %d", waves[currentTrack].sampleSize));
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 + 30, 580, 30}, TextFormat("#97# Frame Count: %d", waves[currentTrack].frameCount));
+
+            //Waveform texture info
+
+            GuiLabel((Rectangle) {screenWidth/2 - 290, screenHeight/2 + 90, 580, 30}, TextFormat("#69# Waveform Texture Size: %dx%d", waveforms[currentTrack].texture.width, waveforms[currentTrack].texture.height));
+
+
+
+
+
+
+
+
+        } else{
+            infoWindow = false;
+        }
+
+    }
+
 
 }
 
