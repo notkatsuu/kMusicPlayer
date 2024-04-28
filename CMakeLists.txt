@@ -32,9 +32,9 @@ endif()
 #endif()
 
 # Our Project
-add_executable(${PROJECT_NAME} main.c include/tinyfiledialogs.c) # Add tinyfiledialogs.c to the compiled files
+add_executable(${PROJECT_NAME} main.c include/tinyfiledialogs.c resources.rc)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_compile_definitions(${PROJECT_NAME} PRIVATE RESOURCES_PATH="${CMAKE_SOURCE_DIR}/resources/")
+
 
 # Link the static version of pthread
 set(THREADS_PREFER_PTHREAD_FLAG ON)
