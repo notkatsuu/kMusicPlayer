@@ -2964,6 +2964,7 @@ int GuiSliderPro(Rectangle bounds, const char *textLeft, const char *textRight, 
         {
             if (IsMouseButtonDown(MOUSE_LEFT_BUTTON))
             {
+
                 if (CHECK_BOUNDS_ID(bounds, guiSliderActive))
                 {
                     state = STATE_PRESSED;
@@ -3047,7 +3048,7 @@ int GuiSliderPro(Rectangle bounds, const char *textLeft, const char *textRight, 
     }
     //--------------------------------------------------------------------
 
-    return result;
+    return state;
 }
 
 // Slider control extended, returns selected value and has text
