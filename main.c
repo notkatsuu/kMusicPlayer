@@ -62,6 +62,10 @@ void refreshDirectory();
 
 void createDirectories();
 
+Image logoImage;
+Texture2D logoTexture;
+float logoRotation = 0.0f;
+
 
 typedef enum {
     LOADING_FILES,
@@ -71,7 +75,6 @@ typedef enum {
 
 //theme colors
 typedef void (*Theme)();
-
 Theme themeFunctions[] = {
         GuiLoadStyleDark,
         GuiLoadStyleCyber,
@@ -80,6 +83,15 @@ Theme themeFunctions[] = {
         GuiLoadStyleLavanda,
         GuiLoadStyleTerminal,
         //GuiLoadStyleKatsu
+};
+
+Color logoColors[] = {
+        WHITE,
+        BLUE,
+        ORANGE,
+        GREEN,
+        PURPLE,
+        GREEN,
 };
 
 typedef enum {
@@ -145,8 +157,12 @@ int nextSongTextPosition = screenWidth; //Starting position for the next song te
 char **filteredFiles;
 
 int main(void) { // Main function
+    logoImage = LoadImage("resources/logo.png");
+
+
 
     LoadFiles();
+
 
     SetConfigFlags(FLAG_WINDOW_UNDECORATED);
     //SetConfigFlags(FLAG_WINDOW_TOPMOST);
@@ -174,6 +190,8 @@ int main(void) { // Main function
     RenderTexture2D camTarget = LoadRenderTexture(screenWidth,
                                                   screenHeight); // Load a render texture to draw the camera target in it
 
+
+    logoTexture = LoadTextureFromImage(logoImage);
     // Main game loop
     while (!exitWindow && !WindowShouldClose()) {
         switch (currentState) {
@@ -191,6 +209,7 @@ int main(void) { // Main function
 
                 if (playing) {
                     elapsedTime += GetFrameTime(); // Update the elapsed time
+                    logoRotation += 0.1f;
                     if (elapsedTime >=
                         totalDurations[currentTrack]) { // If the song ends, play the next one, updating the duration, elapsed time, etc.
                         PlayNextTrack(&currentTrack);
@@ -327,6 +346,10 @@ int main(void) { // Main function
     free(tracks); // Unload sounds memory
     UnloadDirectoryFiles(files);
     UnloadRenderTexture(camTarget); // Unload render texture
+    free(totalDurations); // Unload total durations memory
+    UnloadTexture(logoTexture);
+    free(directoryPath); // Unload directory path memory
+    UnloadImage(logoImage);
     free(filteredFiles);            // Unload filtered files memory
     sem_destroy(&sem_fileLoader);
 
@@ -682,6 +705,12 @@ void DrawUI() {
                                       currentTextSize), (float) currentTextSize},
                  TextFormat("Next: %s", GetFileName(filteredFiles[(currentTrack + 1) % waveCount])));
     }
+
+
+
+
+    DrawTexturePro(logoTexture, (Rectangle) {0, 0, 256, 256},
+                   (Rectangle) {20, 20, 100, 100}, (Vector2) {50, 50}, logoRotation, logoColors[currentTheme]);
 
 
 
