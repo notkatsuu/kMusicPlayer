@@ -46,11 +46,11 @@ void *LoadMusic(void *arg);
 
 void PlayNextTrack(int *index);
 
-void SeekInMusicStream(const int *index, float seconds);
+void SkipSecondsInMusicStream(const int *index, float seconds);
 
 void *LoadFilesThread();
 
-void HandleInputs();
+void HandleKeyboardInputs();
 
 void UpdateTitles();
 
@@ -136,6 +136,7 @@ Vector2 panOffset;
 //UI ELEMENTS-------------------------------------------------------------------------
 Rectangle volumeBar = {((float) screenWidth / 2) + 80, ((float) screenHeight / 2) + 180, 80, 10};
 Rectangle progressBar = {0, (float) screenHeight - 20, (float) screenWidth, 20};
+int progressBarState = 0;
 
 
 int textHeaderPosition = screenWidth; //Starting position for the title text (comes from the right to left)
@@ -186,17 +187,15 @@ int main(void) { // Main function
 
             case PLAYING:
 
-                HandleInputs();
+                HandleKeyboardInputs();
 
                 if (playing) {
                     elapsedTime += GetFrameTime(); // Update the elapsed time
                     if (elapsedTime >=
                         totalDurations[currentTrack]) { // If the song ends, play the next one, updating the duration, elapsed time, etc.
-                        StopMusicStream(tracks[currentTrack]);
-                        elapsedTime = 0.0f;
+                        PlayNextTrack(&currentTrack);
                         nextSongTextPosition = screenWidth;
-                        currentTrack = (currentTrack + 1) % waveCount;
-                        PlayMusicStream(tracks[currentTrack]);
+
                     }
 
                     if (IsMusicStreamPlaying(tracks[currentTrack]) == false) {
@@ -249,6 +248,16 @@ int main(void) { // Main function
 
                 break;
 
+            case LOADING_WAVEFORMS:
+
+                if (waveformLoaded) {
+                    currentState = PLAYING;
+                    elapsedTime = 0.0f;
+                    playing = false;
+                }
+
+                break;
+
             default:
                 break;
         }
@@ -295,17 +304,12 @@ int main(void) { // Main function
 
                         EndMode2D(); // End 2D mode
                         break;
-
                     default:
                         break;
-
                 }
                 DrawUI();
-
                 break;
-
         }
-
         EndDrawing();
 
     }
@@ -418,11 +422,6 @@ void DrawAllWaveforms() {
     }
 
 
-    //canviar de lloc
-    currentState = PLAYING;
-    elapsedTime = 0.0f;
-    playing = false;
-
 }
 
 void LoadFiles() {
@@ -531,9 +530,10 @@ void PlayNextTrack(int *index) {
     *index = (*index + 1) % waveCount;
     PlayMusicStream(tracks[*index]);
     waves[*index] = waves[*index];
+    elapsedTime = 0.0f;
 }
 
-void SeekInMusicStream(const int *index, float seconds) {
+void SkipSecondsInMusicStream(const int *index, float seconds) {
     elapsedTime += seconds;
     if (elapsedTime > totalDurations[*index]) {
         elapsedTime = totalDurations[*index];
@@ -554,7 +554,7 @@ void *LoadFilesThread() {
     return NULL;
 }
 
-void HandleInputs() {
+void HandleKeyboardInputs() {
 
 
     // if press esc close window
@@ -564,12 +564,12 @@ void HandleInputs() {
 
     // advance 5 seconds when scrolling up with mouse wheel
     if (IsKeyPressed(KEY_RIGHT) || GetMouseWheelMove() > 0.0f) {
-        SeekInMusicStream(&currentTrack, 5.0f);
+        SkipSecondsInMusicStream(&currentTrack, 5.0f);
     }
 
     // rewind 5 seconds when left arrow
     if (IsKeyPressed(KEY_LEFT) || GetMouseWheelMove() < 0.0f) {
-        SeekInMusicStream(&currentTrack, -5.0f);
+        SkipSecondsInMusicStream(&currentTrack, -5.0f);
     }
 
     // pause
@@ -604,15 +604,7 @@ void HandleInputs() {
         GUINextTheme();
     }
 
-    // UI CONTROL HANDLING -----------------------------------------------------------------------------------
 
-    if (CheckCollisionPointRec(GetMousePosition(), progressBar) && IsMouseButtonDown(MOUSE_LEFT_BUTTON)) {
-        // Calculate the new elapsed time based on the mouse's x-coordinate
-        float newElapsedTime = GetMouseX() / (float) screenWidth * totalDurations[currentTrack];
-        // Seek in the music stream to the new elapsed time
-        elapsedTime = newElapsedTime;
-        SeekMusicStream(tracks[currentTrack], elapsedTime);
-    }
 }
 
 void UpdateTitles() {
@@ -658,7 +650,6 @@ void DrawUI() {
                      (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)), 0.1f)));
 
 
-
     GuiDrawText(TextFormat("Playing: %s", GetFileName(filteredFiles[currentTrack]),
                            20),
                 (Rectangle) {(float) textHeaderPosition, 5,
@@ -696,13 +687,43 @@ void DrawUI() {
 
     // Draw the volume bar
 
+
     GuiSliderBar(volumeBar, NULL, "#122#", &musicVolume, 0.0f, 1.0f);
 
-    // Draw the progress bar
+    // Progress bar logic
 
-    GuiSliderBar(progressBar, NULL, NULL, &elapsedTime, 0.0f, totalDurations[currentTrack]);
+    switch (GuiSliderBar(progressBar, NULL, "#121#", &elapsedTime, 0.0f, totalDurations[currentTrack])) {
+        case 2:
+            if (IsMusicStreamPlaying(tracks[currentTrack]))
+                PauseMusicStream(tracks[currentTrack]);
 
-    DrawRectangle((screenWidth / 2) - 60, screenHeight - 55, 120, 30, KATSUGRAY);
+            playButtonText = PLAYBUTTON;
+            progressBarState = 2;
+            break;
+
+        case 1:
+        case 0:
+            if (progressBarState == 2) {
+                SeekMusicStream(tracks[currentTrack], elapsedTime);
+                if (playing) {
+                    ResumeMusicStream(tracks[currentTrack]);
+                    playing = true;
+                    playButtonText = PAUSEBUTTON;
+                }
+                progressBarState = 0;
+            }
+            break;
+
+    }
+
+
+
+
+
+
+
+
+
 
     //Draw the play/pause button in the middle of the latest rectangle
     if (GuiButton((Rectangle) {((float) screenWidth / 2) - 20, (float) screenHeight - 55, 40, 30}, playButtonText)) {
@@ -812,7 +833,7 @@ void refreshDirectory() {
     waveformLoaded = false;
 }
 
-void createDirectories(){
+void createDirectories() {
     if (!DirectoryExists("cache")) {
         mkdir("cache");
     }
