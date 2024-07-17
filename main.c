@@ -26,6 +26,13 @@
 #define PAUSEBUTTON "#132#"
 #define PATH_FILE "path.txt"
 
+#include <complex.h>
+#include <math.h>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 // Function Declarations --------------------------------------
 
 // UI Drawing Functions ------------------------------------------
@@ -75,7 +82,6 @@ void SkipSecondsInMusicStream(const int *index, float seconds);
 void HandleKeyboardInputs();
 
 
-
 // Global Variables -------------------------------------------
 Image logoImage;
 Texture2D logoTexture;
@@ -88,6 +94,11 @@ typedef enum {
 // Theme Functions -------------------------------------------
 typedef void (*Theme)();
 
+
+
+//UTILITIES
+void fft(complex double* a, int n);
+
 Theme themeFunctions[] = {
         GuiLoadStyleDark, GuiLoadStyleCyber, GuiLoadStyleCandy,
         GuiLoadStyleJungle, GuiLoadStyleLavanda, GuiLoadStyleTerminal,
@@ -99,7 +110,7 @@ Color logoColors[] = {
 };
 
 typedef enum {
-    WAVEFORM, STRING, BAR, NONE
+    WAVEFORM, STRING, BAR, ORBIT, NONE
 } ViewportType;
 
 // Global Variables -------------------------------------------
@@ -182,8 +193,8 @@ int main(void) { // Main function
     InitAudioDevice();
     SetMasterVolume(musicVolume);
 
-    // Initialize camera
-    Camera2D camera =
+    // Initialize waveformCam
+    Camera2D waveformCam =
             (Camera2D) {{(float) screenWidth / 2, (float) screenHeight / 2},
                         {(float) screenWidth / 2, (float) screenHeight / 2},
                         0.0f,
@@ -191,9 +202,14 @@ int main(void) { // Main function
 
     RenderTexture2D camTarget = LoadRenderTexture(
             screenWidth,
-            screenHeight); // Load a render texture to draw the camera target in it
+            screenHeight); // Load a render texture to draw the waveformCam target in it
 
     logoTexture = LoadTextureFromImage(logoImage);
+
+    //Initialize 3DOrbitalCam
+    Camera3D orbitalCam = (Camera3D) {
+            (Vector3) {0.0f, 10.0f, 10.0f}, (Vector3) {0.0f, 0.0f, 0.0f},
+            (Vector3) {0.0f, 1.0f, 0.0f}, 45.0f, CAMERA_PERSPECTIVE};
 
     // Main game loop
     while (!exitWindow && !WindowShouldClose()) {
@@ -216,7 +232,6 @@ int main(void) { // Main function
                 break;
 
             case PLAYING:
-
                 HandleKeyboardInputs();
 
                 if (playing) {
@@ -239,9 +254,8 @@ int main(void) { // Main function
                 UpdateMusicStream(
                         tracks[currentTrack]); // Update music stream with new track
 
-                // Update camera target position
-                camera.target.x = elapsedTime * 50;
-
+                // Update waveformCam target position
+                waveformCam.target.x = elapsedTime * 50;
                 UpdateTitles();
 
                 // UI LOGIC
@@ -266,11 +280,21 @@ int main(void) { // Main function
 
                 // Volume bar logic
                 SetMasterVolume(powf(musicVolume, 2));
-
                 // Progress bar logic
                 // END OF UI
                 // LOGIC------------------------------------------------------------------------------------
 
+                switch (currentViewport) {
+                    case WAVEFORM:
+                        break;
+                    case STRING:
+                        break;
+                    case ORBIT:
+                        UpdateCamera(&orbitalCam, CAMERA_ORBITAL);
+                        break;
+                    default:
+                        break;
+                }
                 break;
 
 
@@ -283,7 +307,6 @@ int main(void) { // Main function
 
         switch (currentState) {
             case LOADING_FILES:
-
                 DrawText("Loading music files...",
                          screenWidth / 2 - MeasureText("Loading music files...", 20) / 2,
                          screenHeight / 2 - 20, 20, RAYWHITE); // Draw the loading text
@@ -310,7 +333,7 @@ int main(void) { // Main function
             case PLAYING:
                 switch (currentViewport) {
                     case WAVEFORM:
-                        BeginMode2D(camera);    // Begin 2D mode with camera
+                        BeginMode2D(waveformCam);    // Begin 2D mode with waveformCam
                         ClearBackground(BLANK); // Clear the texture background
                         DrawTextureRec(
                                 waveforms[currentTrack].texture,
@@ -320,10 +343,71 @@ int main(void) { // Main function
                                 IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
 
                         EndMode2D(); // End 2D mode
+                        DrawLine(screenWidth / 2, 50, screenWidth / 2, screenHeight - 60,
+                                 (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)),
+                                       0.8f))); // Draw the middle bar
                         break;
 
                     case STRING:
                         DrawVibratingString();
+                        break;
+
+                    case BAR:
+                        float scale = 8.0f;
+
+                        // Retrieve the waveform data for the current song at the current time
+                        float *waveData = waves[currentTrack].data;
+                        int numSamples = waves[currentTrack].frameCount;
+                        int sampleRate = waves[currentTrack].sampleRate;
+                        int currentTimeSample = (int) (elapsedTime * 2 * sampleRate);
+
+                        // Prepare for FFT
+                        int fftSize = 4096; // This value may need to be adjusted depending on your needs
+                        complex double *input = (complex double*) malloc(sizeof(complex double) * fftSize);
+
+                        // Fill the input with audio data
+                        for (int i = 0; i < fftSize; i++) {
+                            input[i] = waveData[currentTimeSample + i] + 0.0 * I;
+                        }
+
+                        // Perform FFT
+                        fft(input, fftSize);
+
+                        for (int i = 0; i < fftSize / 2; i++) { // Only iterate up to half the FFT size due to symmetry in real signals
+                            float magnitude = sqrt(input[i] * conj(input[i])); // Calculate the magnitude of the complex number
+
+                            // Draw the bar for this frequency
+                            DrawRectanglePro((Rectangle) {i * scale, 0, scale, magnitude},
+                                             (Vector2) {10, screenHeight - 80}, 180, IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
+                        }
+
+                        // Free the allocated memory
+                        free(input);
+
+                        break;
+
+                    case ORBIT:/*
+                        BeginMode3D(orbitalCam);
+                        ClearBackground(BLACK);
+                        float scale = 2.0f;
+
+                        // Retrieve the waveform data for the current song at the current time
+                        float *waveData = waves[currentTrack].data;
+                        int numSamples = waves[currentTrack].frameCount;
+                        int sampleRate = waves[currentTrack].sampleRate;
+                        int currentTimeSample = (int) (elapsedTime * 2 * sampleRate);
+
+                        for (int i = 0 - waveCount/2; i <= waveCount/2; i++) {
+                            for (int j = 0 - waveCount/2; j <= waveCount/2; j++) {
+                                // Use the waveform data to calculate the y-coordinate
+                                float y = 0.0f;
+                                if (currentTimeSample + i < numSamples * 2) {
+                                    y += waveData[currentTimeSample + i] * 200.0f;
+                                }
+                                DrawCube((Vector3) {i * scale, 0.0f, j * scale}, scale, y, scale, IntToColor((int)(y)));
+                            }
+                        }
+                        EndMode3D();*/
                         break;
                     default:
                         break;
@@ -385,7 +469,6 @@ void DrawVibratingString() {
     // Parameters for the vibrating string
     static float t = 0; // Time parameter
 
-
     // Calculate the number of segments in the string
     int segments = screenWidth;
     Vector2 *points = malloc(segments * sizeof(Vector2));
@@ -394,7 +477,7 @@ void DrawVibratingString() {
     float *waveData = waves[currentTrack].data;
     int numSamples = waves[currentTrack].frameCount;
     int sampleRate = waves[currentTrack].sampleRate;
-    int currentTimeSample = (int)(elapsedTime * 2 * sampleRate);
+    int currentTimeSample = (int) (elapsedTime * 2 * sampleRate);
 
     // Generate the points along the string
     for (int i = 0; i < segments; i++) {
@@ -403,7 +486,7 @@ void DrawVibratingString() {
         if (currentTimeSample + i < numSamples * 2) {
             y += waveData[currentTimeSample + i] * 200.0f;
         }
-        points[i] = (Vector2){(float)i, y};
+        points[i] = (Vector2) {(float) i, y};
     }
 
     // Draw the string
@@ -490,7 +573,6 @@ void DrawAllWaveforms() {
 }
 
 void LoadFiles() {
-
     FILE *file = fopen(PATH_FILE, "r");
     if (file != NULL) {
         char path[1024];
@@ -591,7 +673,6 @@ void RefreshDataAllocation() {
 }
 
 void PlayNextTrack(int *index) {
-
     StopMusicStream(tracks[*index]);
     *index = (*index + 1) % waveCount;
     PlayMusicStream(tracks[*index]);
@@ -612,7 +693,6 @@ void SkipSecondsInMusicStream(const int *index, float seconds) {
 }
 
 void *LoadFilesThread() {
-
     CountAudioFiles();
     LoadAllMusic();          // Load all music from the files
     RefreshDataAllocation(); // Refresh the memory allocation for the dinamic
@@ -702,13 +782,6 @@ void UpdateTitles() {
 
 void DrawUI() {
 
-    DrawLine(screenWidth / 2, 50, screenWidth / 2, screenHeight - 60,
-             WHITE); // Draw the middle bar
-
-    DrawLine(screenWidth / 2, 50, screenWidth / 2, screenHeight - 60,
-             (Fade(IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)),
-                   0.4f))); // Draw the middle bar
-
     DrawRectangleGradientV(0, 0, screenWidth, (screenHeight / 2) - 20, BLACK,
                            BLANK); // Draw the top gradient
     DrawRectangleGradientV(0, (screenHeight / 2) + 20, screenWidth,
@@ -766,11 +839,9 @@ void DrawUI() {
                    logoColors[currentTheme]);
 
     // Draw the volume bar
-
     GuiSliderBar(volumeBar, NULL, "#122#", &musicVolume, 0.0f, 1.0f);
 
     // Progress bar logic
-
     switch (GuiSliderBar(progressBar, NULL, "#121#", &elapsedTime, 0.0f,
                          totalDurations[currentTrack])) {
         case 2:
@@ -903,7 +974,6 @@ void DrawUI() {
     }
 
     // button to refresh the directory
-
     if (GuiButton((Rectangle) {(float) screenWidth - 30, 50, 30, 30}, "#3#")) {
         refreshDirectory();
         LoadFiles();
@@ -940,5 +1010,28 @@ void createDirectories() {
     }
     if (!DirectoryExists("cache/waveforms")) {
         mkdir("cache/waveforms");
+    }
+}
+
+
+
+void fft(complex double* a, int n) {
+    if (n == 1)
+        return;
+
+    complex double a0[n/2];
+    complex double a1[n/2];
+    for (int i = 0; i < n/2; i++) {
+        a0[i] = a[i*2];
+        a1[i] = a[i*2+1];
+    }
+
+    fft(a0, n/2);
+    fft(a1, n/2);
+
+    for (int i = 0; i < n/2; i++) {
+        complex double t = cexp(-2.0 * I * M_PI * i / n) * a1[i];
+        a[i] = a0[i] + t;
+        a[i+n/2] = a0[i] - t;
     }
 }
