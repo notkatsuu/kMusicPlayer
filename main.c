@@ -152,7 +152,7 @@ typedef struct {
 } pathIndex;
 
 PlayerState currentState = LOADING_FILES;
-ViewportType currentViewport = WAVEFORM;
+ViewportType currentViewport = STRING;
 bool infoWindow = false;
 
 int currentTheme = 0;
@@ -215,24 +215,24 @@ int main(void) { // Main function
             (Vector3) {0.0f, 2.0f, 10.0f}, (Vector3) {0.0f, 0.0f, 0.0f},
             (Vector3) {0.0f, 1.0f, 0.0f}, 45.0f, CAMERA_PERSPECTIVE};
 
+
+
+
     // Main game loop
     while (!exitWindow && !WindowShouldClose()) {
-
         switch (currentState) {
             case LOADING_FILES:
-
                 if (firstStart) {
                     createDirectories();
                     pthread_create(&loadingThread, NULL, LoadFilesThread, NULL);
                     firstStart = false;
+
                 }
                 break;
 
             case LOADING_WAVEFORMS:
                 if (waveformLoaded) {
                     currentState = PLAYING;
-                    elapsedTime = 0.0f;
-                    playing = false;
                 }
                 break;
 
@@ -259,10 +259,7 @@ int main(void) { // Main function
                 UpdateMusicStream(
                         tracks[currentTrack]); // Update music stream with new track
 
-                // Update waveformCam target position
-                waveformCam.target.x = elapsedTime * 50;
                 UpdateTitles();
-
                 // UI LOGIC
                 // ----------------------------------------------------------------------------------------
 
@@ -291,6 +288,11 @@ int main(void) { // Main function
 
                 switch (currentViewport) {
                     case WAVEFORM:
+                        if (!waveformLoaded)
+                            currentState = LOADING_WAVEFORMS;
+
+                        // Update waveformCam target position
+                        waveformCam.target.x = elapsedTime * 50;
                         break;
                     case STRING:
                         break;
@@ -330,11 +332,8 @@ int main(void) { // Main function
                 break;
 
             case LOADING_WAVEFORMS:
-                DrawText("Loading waveforms...",
-                         screenWidth / 2 - MeasureText("Loading waveforms...", 20) / 2,
-                         screenHeight / 2 - 20, 20, RAYWHITE);
-
                 if (!waveformLoaded) {
+                    ClearBackground(BLACK);
                     DrawAllWaveforms();
                     waveformLoaded = true;
                 }
@@ -570,11 +569,6 @@ void DrawAllWaveforms() {
                      (int) waves[i].sampleRate);
         EndTextureMode();
 
-        // Draw Progress bar
-        DrawRectangle(150, screenHeight / 2 + 20,
-                      (screenWidth - 300) * i / waveCount, 20,
-                      WHITE); // Draw the progress bar
-
         ExportImage(LoadImageFromTexture(waveforms[i].texture),
                     TextFormat("cache/waveforms/waveform_%s.png",
                                GetFileName(filteredFiles[i])));
@@ -705,8 +699,9 @@ void *LoadFilesThread() {
     CountAudioFiles();
     LoadAllMusic();          // Load all music from the files
     RefreshDataAllocation(); // Refresh the memory allocation for the dinamic
-    // arrays, removing the corrupted files
-    currentState = LOADING_WAVEFORMS;
+
+    //all the files finished loading
+    currentState = PLAYING;
     return NULL;
 }
 
