@@ -83,7 +83,7 @@ void HandleKeyboardInputs();
 
 
 // Global Variables -------------------------------------------
-Image logoImage;
+
 Texture2D logoTexture;
 float logoRotation = 0.0f;
 
@@ -93,8 +93,6 @@ typedef enum {
 
 // Theme Functions -------------------------------------------
 typedef void (*Theme)();
-
-
 
 //UTILITIES
 void fft(complex double* a, int n);
@@ -137,7 +135,6 @@ float *totalDurations;      // Array for storing the total duration of each song
 sem_t sem_fileLoader;
 pthread_t loadingThread;
 
-
 complex double *input;
 int fftSize = 4096; // This value may need to be adjusted depending on your needs
 float *waveData;
@@ -177,7 +174,7 @@ int nextSongTextPosition =
 char **filteredFiles;
 
 int main(void) { // Main function
-    logoImage = LoadImage("resources/logo.png"); //i'll try to compile the logo directly
+
 
     LoadFiles();
 
@@ -208,7 +205,7 @@ int main(void) { // Main function
             screenWidth,
             screenHeight); // Load a render texture to draw the waveformCam target in it
 
-    logoTexture = LoadTextureFromImage(logoImage);
+
 
     //Initialize 3DOrbitalCam
     Camera3D orbitalCam = (Camera3D) {
@@ -444,7 +441,6 @@ int main(void) { // Main function
     free(totalDurations);           // Unload total durations memory
     UnloadTexture(logoTexture);
     free(directoryPath); // Unload directory path memory
-    UnloadImage(logoImage);
     free(filteredFiles); // Unload filtered files memory
     sem_destroy(&sem_fileLoader);
 
@@ -915,62 +911,8 @@ void DrawUI() {
         GUINextTheme();
     }
 
-    // Draw button to show the info window
+    // Draw button to show the change the viewport
     if (GuiButton((Rectangle) {((float) screenWidth / 2) - 120,
-                               (float) screenHeight - 50, 20, 20},
-                  "#191#")) {
-
-        infoWindow = !infoWindow;
-    }
-
-    if (infoWindow) {
-        if (!GuiWindowBox((Rectangle) {(float) screenWidth / 2 - 300, (float) screenHeight / 2 - 200,
-                                       600, 400},
-                          NULL)) {
-
-            // Track info
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 - 160, 580, 30},
-                    "Track Info:");
-            // Title
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 - 120, 580, 30},
-                    TextFormat("#30# Title: %s",
-                               GetFileName(filteredFiles[currentTrack])));
-            // Duration
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 - 90, 580, 30},
-                    TextFormat("#124# Duration: %02d:%02d",
-                               (int) totalDurations[currentTrack] / 60,
-                               (int) totalDurations[currentTrack] % 60));
-            // Sample Rate
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 - 60, 580, 30},
-                    TextFormat("#14# Sample Rate: %d", waves[currentTrack].sampleRate));
-            // Channels
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 - 30, 580, 30},
-                    TextFormat("#175# Channels: %d", waves[currentTrack].channels));
-            // Sample Size
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2, 580, 30},
-                    TextFormat("#33# Sample Size: %d", waves[currentTrack].sampleSize));
-            // Frame Count
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 + 30, 580, 30},
-                    TextFormat("#97# Frame Count: %d", waves[currentTrack].frameCount));
-            // Waveform texture info
-            GuiLabel(
-                    (Rectangle) {(float) screenWidth / 2 - 290, (float) screenHeight / 2 + 90, 580, 30},
-                    TextFormat("#69# Waveform Texture Size: %dx%d",
-                               waveforms[currentTrack].texture.width,
-                               waveforms[currentTrack].texture.height));
-        } else {
-            infoWindow = false;
-        }
-    }
-
-    if (GuiButton((Rectangle) {((float) screenWidth / 2) - 150,
                                (float) screenHeight - 50, 20, 20},
                   "#13#")) {
 
