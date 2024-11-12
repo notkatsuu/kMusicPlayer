@@ -277,7 +277,7 @@ int main(void) {
 
                     case ORBIT:
                         UpdateCamera(&orbitalCam, CAMERA_ORBITAL);
-                        break;
+                    
 
                     case BAR:
                         waveData = waves[currentTrack].data;
@@ -327,13 +327,46 @@ int main(void) {
                         break;
 
                     case BAR:
-                        // FFT visualization (code unchanged)
+                        float scale = 8.0f;
+                    // Prepare for FFT
+                    // Fill the input with audio data
+                    for (int i = 0; i < fftSize; i++) {
+                        input[i] = waveData[(int) (elapsedTime * 2 * waves[currentTrack].sampleRate) + i] + 0.0 * I;
+                    }
+                    // Perform FFT
+                    fft(input, fftSize);
+                    for (int i = 0; i < fftSize / 2; i++) { // Only iterate up to half the FFT size due to symmetry in real signals
+                        float magnitude = sqrt(input[i] * conj(input[i])); // Calculate the magnitude of the complex number
+                        // Draw the bar for this frequency
+                        DrawRectanglePro((Rectangle) {i * scale, 0, scale, magnitude},
+                                         (Vector2) {10, screenHeight - 80}, 180, IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
+                    }
+                    // Free the allocated memory
+                    free(input);
                         break;
 
                     case ORBIT:
                         BeginMode3D(orbitalCam);
-                        ClearBackground(BLACK);
-                        // Orbit visualization (code unchanged)
+                    ClearBackground(BLACK);
+                    fftSize = 8000;
+                    float radius = 5.0f; // Radius of the circle
+                    float cubeSize = 0.01f; // Size of each cube
+                    int numCubes = fftSize / 2; // Number of cubes, should match half the FFT size
+                    complex double *input = (complex double*) malloc(sizeof(complex double) * fftSize);
+                    for (int i = 0; i < fftSize / 2; i++) {
+                        input[i] = waveData[(int) (elapsedTime * 2 * waves[currentTrack].sampleRate) + i] + 0.0 * I;
+                    }
+                    fft(input, fftSize);
+                    for (int i = 0; i < numCubes; i++) {
+                        float magnitude = sqrt(input[i] * conj(input[i]));
+                        // Calculate the position of each cube in a circular pattern
+                        float angle = (float)i / numCubes * 2 * PI; // Angle for this cube
+                        float x = cos(angle) * radius;
+                        float z = sin(angle) * radius;
+                        float y = magnitude * 0.1f; // Scale the magnitude for visibility
+                        DrawCube((Vector3){x, 0, z}, cubeSize, y+cubeSize, cubeSize, IntToColor(GuiGetStyle(DEFAULT, TEXT_COLOR_NORMAL)));
+                    }
+                    free(input);
                         EndMode3D();
                         break;
 
